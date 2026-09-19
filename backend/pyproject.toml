@@ -7,6 +7,7 @@ dependencies = [
   "alembic>=1.14,<2",
   "asyncpg>=0.30,<1",
   "cloudinary>=1.41,<2",
+  "email-validator>=2.2,<3",
   "fastapi>=0.115,<1",
   "langchain>=1,<2",
   "langgraph>=1,<2",
@@ -48,4 +49,3 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
 strict = true
-

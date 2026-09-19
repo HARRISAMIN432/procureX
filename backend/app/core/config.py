@@ -12,6 +12,11 @@ class Environment(StrEnum):
     PRODUCTION = "production"
 
 
+class AuthMode(StrEnum):
+    DEV_HEADERS = "dev_headers"
+    OIDC = "oidc"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -25,6 +30,11 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     environment: Environment = Environment.LOCAL
     debug: bool = False
+
+    auth_mode: AuthMode = AuthMode.DEV_HEADERS
+    dev_bootstrap_key: SecretStr = SecretStr("local-development-only")
+    oidc_issuer: str | None = None
+    oidc_audience: str | None = None
 
     database_url: str = "postgresql+asyncpg://procurex:procurex@localhost:5432/procurex"
     database_echo: bool = False
@@ -68,6 +78,10 @@ class Settings(BaseSettings):
             ]
             if missing:
                 raise ValueError(f"Missing deployed-environment settings: {', '.join(missing)}")
+            if self.auth_mode is not AuthMode.OIDC:
+                raise ValueError("Staging and production require PROCUREX_AUTH_MODE=oidc")
+            if not self.oidc_issuer or not self.oidc_audience:
+                raise ValueError("Staging and production require OIDC issuer and audience")
         return self
 
 

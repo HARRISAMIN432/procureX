@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import Environment, Settings
+from app.core.config import AuthMode, Environment, Settings
 
 
 def test_local_settings_have_safe_defaults() -> None:
@@ -24,5 +24,17 @@ def test_production_rejects_blank_cloudinary_secrets() -> None:
             cloudinary_cloud_name="procurex",
             cloudinary_api_key="",
             cloudinary_api_secret="",
+            _env_file=None,
+        )
+
+
+def test_production_rejects_development_header_auth() -> None:
+    with pytest.raises(ValidationError, match="AUTH_MODE=oidc"):
+        Settings(
+            environment=Environment.PRODUCTION,
+            auth_mode=AuthMode.DEV_HEADERS,
+            cloudinary_cloud_name="procurex",
+            cloudinary_api_key="key",
+            cloudinary_api_secret="secret",
             _env_file=None,
         )

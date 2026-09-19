@@ -32,3 +32,6 @@ Local values live in `backend/.env`, which is ignored. Staging and production lo
 managed secret store. Cloudinary API secrets, model keys, database credentials, and signing keys
 must never enter logs, graph state, audit payloads, fixtures, or source control.
 
+Development header authentication is explicitly limited to local/test configuration. Staging and
+production configuration requires OIDC mode, issuer, and audience, and must not start with the
+development header mechanism enabled.

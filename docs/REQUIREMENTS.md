@@ -18,6 +18,10 @@ Stable requirement identifiers are defined in [ROADMAP.md](ROADMAP.md), Section 
 
 ## Foundation acceptance criteria
 
+**Current status:** configuration, schema, local identity bootstrap, RBAC context, organization
+reads, and versioned settings APIs are implemented. Live PostgreSQL migration and cross-tenant
+integration tests remain pending until a database service is available.
+
 The current backend foundation must provide:
 
 - validated environment configuration with no committed secrets;
@@ -37,4 +41,3 @@ A requirement is complete only when normal and exceptional paths work, permissio
 migrations and tests exist, audit/telemetry are present, documentation is current, and its
 acceptance evidence is recorded. A mock, manual database edit, or unimplemented UI control does
 not satisfy a requirement.
-

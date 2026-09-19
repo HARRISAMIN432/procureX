@@ -30,6 +30,20 @@ payload is a conflict.
 | `GET /health/live` | Process is running; no dependency check |
 | `GET /health/ready` | Required database dependency is reachable |
 
+## Implemented identity endpoints
+
+| Endpoint | Permission / restriction |
+|---|---|
+| `POST /api/v1/organizations/dev-bootstrap` | Local/test only; `X-Dev-Bootstrap-Key` required |
+| `GET /api/v1/organizations/current` | `organization.read` |
+| `GET /api/v1/organizations/current/membership` | `organization.read` |
+| `GET /api/v1/organizations/current/settings` | `organization.settings.read` |
+| `PUT /api/v1/organizations/current/settings` | `organization.settings.write` |
+
+Until an OIDC provider is selected, local requests identify their development principal with
+`X-Organization-ID` and `X-User-ID`. Configuration rejects this auth mode in staging and
+production; the headers are not a production authentication mechanism.
+
 ## Events
 
 Business state and an `outbox_events` row are committed in one transaction. Consumers assume
@@ -38,4 +52,3 @@ aggregate/version, event/schema type, actor, time, correlation, causation, and a
 
 The first event families are `document.*`, `analysis.*`, followed by the procurement events listed
 in [ROADMAP.md](ROADMAP.md), Section 9.
-
