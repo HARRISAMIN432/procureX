@@ -44,6 +44,22 @@ Until an OIDC provider is selected, local requests identify their development pr
 `X-Organization-ID` and `X-User-ID`. Configuration rejects this auth mode in staging and
 production; the headers are not a production authentication mechanism.
 
+## Implemented requisition endpoints
+
+| Endpoint | Permission | Behavior |
+|---|---|---|
+| `POST /api/v1/requisitions` | `requisitions.write` | Create a draft with lines and structured requirements |
+| `GET /api/v1/requisitions` | `requisitions.read` | Return a stable paginated tenant list |
+| `GET /api/v1/requisitions/{id}` | `requisitions.read` | Return the aggregate with lines and requirements |
+| `PUT /api/v1/requisitions/{id}` | `requisitions.write` | Replace editable draft content using `expected_version` |
+| `POST /api/v1/requisitions/{id}/submit` | `requisitions.submit` | Validate and snapshot the submitted version |
+| `POST /api/v1/requisitions/{id}/cancel` | `requisitions.cancel` | Cancel an allowed state with reason and expected version |
+
+Draft writes accept exact decimal quantities/prices, ISO currency, optional delivery date/location,
+JSON specifications, and mandatory/preferred requirements. Requirement inputs may reference a line
+number; database constraints preserve the same-tenant, same-requisition relationship. Submission
+requires at least one line and confirmation of every proposed requirement.
+
 ## Events
 
 Business state and an `outbox_events` row are committed in one transaction. Consumers assume

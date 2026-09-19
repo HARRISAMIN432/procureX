@@ -17,6 +17,8 @@ def test_identity_routes_are_in_openapi() -> None:
     assert "/api/v1/organizations/dev-bootstrap" in schema["paths"]
     assert "/api/v1/organizations/current" in schema["paths"]
     assert "/api/v1/organizations/current/settings" in schema["paths"]
+    assert "/api/v1/requisitions" in schema["paths"]
+    assert "/api/v1/requisitions/{requisition_id}/submit" in schema["paths"]
 
 
 def test_bootstrap_schema_normalizes_names() -> None:

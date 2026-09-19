@@ -22,9 +22,15 @@
 | Document version | Quarantined → Scanning → Parsing → Extracted → Reviewed |
 | Analysis run | Queued → Running → Awaiting review → Completed |
 | Job | Queued → Running → Completed |
+| Requisition | Draft → Submitted → Approved → Sourcing → Ordered → Closed |
 
 Failure, cancellation, retry, rejected, stale, and superseded states are explicit. Every transition
 defines actor, preconditions, expected version, atomic writes, audit event, and notifications.
+
+The currently implemented requisition transitions are create draft, replace draft/changes-requested
+content, submit, and cancel. Submission increments the aggregate version and writes an immutable
+JSON snapshot with a SHA-256 digest. Approval, budget reservation, rejection, and change-request
+commands remain in the next requisition work slice.
 
 ## Required recovery behavior
 
@@ -33,4 +39,3 @@ defines actor, preconditions, expected version, atomic writes, audit event, and 
 - Changed source versions make pending approval or analysis stale.
 - Provider failure ends in bounded retry or an owned manual queue.
 - Timeouts after external creation reconcile by stable external reference before retry.
-

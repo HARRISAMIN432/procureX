@@ -21,6 +21,10 @@ EXPECTED_TABLES = {
     "jobs",
     "outbox_events",
     "audit_events",
+    "requisitions",
+    "requisition_lines",
+    "requisition_requirements",
+    "requisition_revisions",
 }
 
 

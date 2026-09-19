@@ -16,8 +16,9 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 | Documents | `documents`, `document_versions`, `cloudinary_assets`, `document_scans` |
 | AI execution | `analysis_runs`, `model_invocations` |
 | Platform | `jobs`, `outbox_events`, `audit_events` |
+| Requisitions | `requisitions`, `requisition_lines`, `requisition_requirements`, `requisition_revisions` |
 
-Later migrations add procurement, sourcing, supplier, evaluation, order, and finance aggregates
+Later migrations add budgets/approvals, sourcing, supplier, evaluation, order, and finance aggregates
 described in [DOMAIN.md](DOMAIN.md).
 
 ## Tenant isolation

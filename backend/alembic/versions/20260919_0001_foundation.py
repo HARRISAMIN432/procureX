@@ -62,13 +62,13 @@ def upgrade() -> None:
         sa.Column("default_currency", sa.String(3), server_default="PKR", nullable=False),
         sa.Column("timezone", sa.String(64), server_default="Asia/Karachi", nullable=False),
         *timestamps(),
-        sa.CheckConstraint("slug = lower(slug)", name="ck_organizations_slug_lowercase"),
+        sa.CheckConstraint("slug = lower(slug)", name=op.f("ck_organizations_slug_lowercase")),
         sa.CheckConstraint(
-            "default_currency ~ '^[A-Z]{3}$'", name="ck_organizations_currency_iso_code"
+            "default_currency ~ '^[A-Z]{3}$'", name=op.f("ck_organizations_currency_iso_code")
         ),
         sa.CheckConstraint(
             "status IN ('active','suspended','closing','closed')",
-            name="ck_organizations_organization_status",
+            name=op.f("ck_organizations_organization_status"),
         ),
         sa.PrimaryKeyConstraint("id", name="pk_organizations"),
         sa.UniqueConstraint("slug", name="uq_organizations_slug"),
@@ -84,7 +84,7 @@ def upgrade() -> None:
         *timestamps(),
         sa.CheckConstraint(
             "status IN ('invited','active','suspended','disabled')",
-            name="ck_users_user_status",
+            name=op.f("ck_users_user_status"),
         ),
         sa.PrimaryKeyConstraint("id", name="pk_users"),
         sa.UniqueConstraint("external_subject", name="uq_users_external_subject"),
@@ -108,7 +108,7 @@ def upgrade() -> None:
         *timestamps(),
         sa.CheckConstraint(
             "status IN ('invited','active','suspended','revoked')",
-            name="ck_memberships_membership_status",
+            name=op.f("ck_memberships_membership_status"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id"], ["organizations.id"], ondelete="CASCADE", name="fk_memberships_org"
@@ -193,10 +193,10 @@ def upgrade() -> None:
         sa.Column("effective_to", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_by_user_id", postgresql.UUID(as_uuid=True), nullable=True),
         *timestamps(),
-        sa.CheckConstraint("version > 0", name="ck_organization_settings_positive_version"),
+        sa.CheckConstraint("version > 0", name=op.f("ck_organization_settings_positive_version")),
         sa.CheckConstraint(
             "effective_to IS NULL OR effective_to > effective_from",
-            name="ck_organization_settings_valid_effective_range",
+            name=op.f("ck_organization_settings_valid_effective_range"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id"],
@@ -227,7 +227,7 @@ def upgrade() -> None:
         *timestamps(),
         sa.CheckConstraint(
             "status IN ('quarantined','scanning','ready','rejected','archived')",
-            name="ck_documents_document_status",
+            name=op.f("ck_documents_document_status"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id"], ["organizations.id"], ondelete="CASCADE", name="fk_documents_org"
@@ -254,13 +254,15 @@ def upgrade() -> None:
         sa.Column("status", sa.String(30), server_default="quarantined", nullable=False),
         sa.Column("created_by_user_id", postgresql.UUID(as_uuid=True), nullable=True),
         *timestamps(),
-        sa.CheckConstraint("version > 0", name="ck_document_versions_positive_version"),
-        sa.CheckConstraint("byte_size >= 0", name="ck_document_versions_nonnegative_byte_size"),
-        sa.CheckConstraint("length(sha256) = 64", name="ck_document_versions_sha256_length"),
+        sa.CheckConstraint("version > 0", name=op.f("ck_document_versions_positive_version")),
+        sa.CheckConstraint(
+            "byte_size >= 0", name=op.f("ck_document_versions_nonnegative_byte_size")
+        ),
+        sa.CheckConstraint("length(sha256) = 64", name=op.f("ck_document_versions_sha256_length")),
         sa.CheckConstraint(
             "status IN ('quarantined','scanning','parsing','extracted',"
             "'reviewed','rejected','failed')",
-            name="ck_document_versions_document_version_status",
+            name=op.f("ck_document_versions_document_version_status"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id", "document_id"],
@@ -297,12 +299,15 @@ def upgrade() -> None:
         sa.Column("status", sa.String(30), server_default="uploaded", nullable=False),
         *timestamps(),
         sa.CheckConstraint(
-            "delivery_type = 'authenticated'", name="ck_cloudinary_assets_authenticated_delivery"
+            "delivery_type = 'authenticated'",
+            name=op.f("ck_cloudinary_assets_authenticated_delivery"),
         ),
-        sa.CheckConstraint("byte_size >= 0", name="ck_cloudinary_assets_nonnegative_byte_size"),
+        sa.CheckConstraint(
+            "byte_size >= 0", name=op.f("ck_cloudinary_assets_nonnegative_byte_size")
+        ),
         sa.CheckConstraint(
             "status IN ('uploaded','verified','deletion_pending','deleted','missing')",
-            name="ck_cloudinary_assets_cloudinary_asset_status",
+            name=op.f("ck_cloudinary_assets_cloudinary_asset_status"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id", "document_version_id"],
@@ -330,7 +335,7 @@ def upgrade() -> None:
         *timestamps(),
         sa.CheckConstraint(
             "status IN ('pending','clean','infected','error')",
-            name="ck_document_scans_document_scan_status",
+            name=op.f("ck_document_scans_document_scan_status"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id", "document_version_id"],
@@ -369,7 +374,7 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "status IN ('queued','running','awaiting_review','completed',"
             "'failed','cancelled','stale')",
-            name="ck_analysis_runs_analysis_run_status",
+            name=op.f("ck_analysis_runs_analysis_run_status"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id"],
@@ -412,15 +417,15 @@ def upgrade() -> None:
         sa.Column("error_code", sa.String(100), nullable=True),
         *timestamps(),
         sa.CheckConstraint(
-            "input_tokens >= 0", name="ck_model_invocations_nonnegative_input_tokens"
+            "input_tokens >= 0", name=op.f("ck_model_invocations_nonnegative_input_tokens")
         ),
         sa.CheckConstraint(
-            "output_tokens >= 0", name="ck_model_invocations_nonnegative_output_tokens"
+            "output_tokens >= 0", name=op.f("ck_model_invocations_nonnegative_output_tokens")
         ),
-        sa.CheckConstraint("cost_amount >= 0", name="ck_model_invocations_nonnegative_cost"),
+        sa.CheckConstraint("cost_amount >= 0", name=op.f("ck_model_invocations_nonnegative_cost")),
         sa.CheckConstraint(
             "status IN ('started','completed','failed')",
-            name="ck_model_invocations_model_invocation_status",
+            name=op.f("ck_model_invocations_model_invocation_status"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id", "analysis_run_id"],
@@ -454,11 +459,11 @@ def upgrade() -> None:
         sa.Column("error_detail", sa.Text(), nullable=True),
         sa.Column("correlation_id", sa.String(100), nullable=True),
         *timestamps(),
-        sa.CheckConstraint("attempts >= 0", name="ck_jobs_nonnegative_attempts"),
-        sa.CheckConstraint("max_attempts > 0", name="ck_jobs_positive_max_attempts"),
+        sa.CheckConstraint("attempts >= 0", name=op.f("ck_jobs_nonnegative_attempts")),
+        sa.CheckConstraint("max_attempts > 0", name=op.f("ck_jobs_positive_max_attempts")),
         sa.CheckConstraint(
             "status IN ('queued','running','retry_scheduled','completed','failed','cancelled')",
-            name="ck_jobs_job_status",
+            name=op.f("ck_jobs_job_status"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id"], ["organizations.id"], ondelete="CASCADE", name="fk_jobs_org"
@@ -490,10 +495,10 @@ def upgrade() -> None:
         sa.Column("published_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("publish_attempts", sa.Integer(), nullable=False),
         sa.CheckConstraint(
-            "aggregate_version > 0", name="ck_outbox_events_positive_aggregate_version"
+            "aggregate_version > 0", name=op.f("ck_outbox_events_positive_aggregate_version")
         ),
         sa.CheckConstraint(
-            "publish_attempts >= 0", name="ck_outbox_events_nonnegative_publish_attempts"
+            "publish_attempts >= 0", name=op.f("ck_outbox_events_nonnegative_publish_attempts")
         ),
         sa.ForeignKeyConstraint(
             ["organization_id"],
@@ -538,7 +543,7 @@ def upgrade() -> None:
         sa.Column("changes", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.CheckConstraint(
             "actor_type IN ('user','service','system')",
-            name="ck_audit_events_audit_actor_type",
+            name=op.f("ck_audit_events_audit_actor_type"),
         ),
         sa.ForeignKeyConstraint(
             ["organization_id"],

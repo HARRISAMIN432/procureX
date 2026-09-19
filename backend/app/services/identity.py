@@ -40,6 +40,10 @@ PERMISSION_CATALOG: dict[str, str] = {
     "analysis.read": "View AI analysis runs and evidence",
     "analysis.run": "Start and resume AI analysis runs",
     "audit.read": "View organization audit events",
+    "requisitions.read": "View requisitions in the organization",
+    "requisitions.write": "Create and edit draft requisitions",
+    "requisitions.submit": "Submit requisitions for approval",
+    "requisitions.cancel": "Cancel permitted requisitions",
 }
 
 

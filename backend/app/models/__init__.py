@@ -11,6 +11,12 @@ from app.models.identity import (
     User,
 )
 from app.models.platform import AuditEvent, Job, OutboxEvent
+from app.models.requisitions import (
+    Requisition,
+    RequisitionLine,
+    RequisitionRequirement,
+    RequisitionRevision,
+)
 
 __all__ = [
     "AnalysisRun",
@@ -30,4 +36,8 @@ __all__ = [
     "Role",
     "RolePermission",
     "User",
+    "Requisition",
+    "RequisitionLine",
+    "RequisitionRequirement",
+    "RequisitionRevision",
 ]
