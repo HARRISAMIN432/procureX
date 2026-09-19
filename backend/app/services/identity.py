@@ -44,6 +44,13 @@ PERMISSION_CATALOG: dict[str, str] = {
     "requisitions.write": "Create and edit draft requisitions",
     "requisitions.submit": "Submit requisitions for approval",
     "requisitions.cancel": "Cancel permitted requisitions",
+    "budgets.read": "View budgets and ledger balances",
+    "budgets.manage": "Create budgets and allocations",
+    "budgets.reserve": "Reserve available budget during approval",
+    "approvals.read": "View approval policies, requests, and decisions",
+    "approvals.request": "Request approval for a submitted requisition",
+    "approvals.decide": "Approve or reject assigned procurement decisions",
+    "approvals.policies.manage": "Create and version approval policies",
 }
 
 

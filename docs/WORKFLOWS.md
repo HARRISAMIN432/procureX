@@ -28,9 +28,11 @@ Failure, cancellation, retry, rejected, stale, and superseded states are explici
 defines actor, preconditions, expected version, atomic writes, audit event, and notifications.
 
 The currently implemented requisition transitions are create draft, replace draft/changes-requested
-content, submit, and cancel. Submission increments the aggregate version and writes an immutable
-JSON snapshot with a SHA-256 digest. Approval, budget reservation, rejection, and change-request
-commands remain in the next requisition work slice.
+content, submit, approve, reject, and cancel. Submission increments the aggregate version and
+writes an immutable JSON snapshot with a SHA-256 digest. An approval request binds that snapshot
+to a versioned policy and dated budget. Distinct decisions accumulate until quorum; final approval
+and budget reservation occur atomically. Change-request and reservation-release commands remain
+for the next refinement slice.
 
 ## Required recovery behavior
 

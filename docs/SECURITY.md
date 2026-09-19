@@ -35,3 +35,7 @@ must never enter logs, graph state, audit payloads, fixtures, or source control.
 Development header authentication is explicitly limited to local/test configuration. Staging and
 production configuration requires OIDC mode, issuer, and audience, and must not start with the
 development header mechanism enabled.
+
+Approval requests bind immutable requisition and policy versions. Distinct approvers are enforced
+by a database uniqueness constraint, requester self-approval can be prohibited by policy, and the
+final approver must also hold the separate `budgets.reserve` permission.

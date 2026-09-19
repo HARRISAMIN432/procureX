@@ -17,9 +17,15 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 | AI execution | `analysis_runs`, `model_invocations` |
 | Platform | `jobs`, `outbox_events`, `audit_events` |
 | Requisitions | `requisitions`, `requisition_lines`, `requisition_requirements`, `requisition_revisions` |
+| Approval controls | `approval_policies`, `approval_requests`, `approval_decisions` |
+| Budgets | `budgets`, `budget_ledger_entries`, `budget_reservations` |
 
-Later migrations add budgets/approvals, sourcing, supplier, evaluation, order, and finance aggregates
+Later migrations add sourcing, supplier, evaluation, order, and finance aggregates
 described in [DOMAIN.md](DOMAIN.md).
+
+Budget balances are derived from an append-only four-bucket ledger: available, reserved,
+committed, and consumed. Reservation locks the budget row, verifies the current available sum, and
+writes balanced available/reserved deltas in the same transaction as final requisition approval.
 
 ## Tenant isolation
 

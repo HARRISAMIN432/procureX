@@ -55,3 +55,7 @@ Implemented organization endpoints are documented in
 The first requisition slice is also available under `/api/v1/requisitions`, with exact decimal
 validation, optimistic versions, permission checks, immutable submission snapshots, audit events,
 and outbox events. See [the API reference](../docs/API.md#implemented-requisition-endpoints).
+
+Approval policies, quorum decisions, budgets, append-only ledger balances, and atomic reservation
+are available through the approval/budget endpoints documented in
+[`../docs/API.md`](../docs/API.md#implemented-approval-and-budget-endpoints).

@@ -25,6 +25,12 @@ EXPECTED_TABLES = {
     "requisition_lines",
     "requisition_requirements",
     "requisition_revisions",
+    "budgets",
+    "budget_ledger_entries",
+    "budget_reservations",
+    "approval_policies",
+    "approval_requests",
+    "approval_decisions",
 }
 
 

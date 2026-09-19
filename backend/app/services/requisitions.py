@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy import delete, func, select
 
 from app.auth.context import RequestContext
+from app.models.approvals import ApprovalRequest, ApprovalRequestStatus
 from app.models.platform import ActorType, AuditEvent, OutboxEvent
 from app.models.requisitions import (
     Requisition,
@@ -307,6 +308,42 @@ async def cancel_requisition(
     requisition.status = RequisitionStatus.CANCELLED
     requisition.cancelled_at = datetime.now(UTC)
     requisition.cancellation_reason = payload.reason.strip()
+    pending_approval = await context.session.scalar(
+        select(ApprovalRequest)
+        .where(
+            ApprovalRequest.organization_id == context.organization_id,
+            ApprovalRequest.requisition_id == requisition.id,
+            ApprovalRequest.status == ApprovalRequestStatus.PENDING,
+        )
+        .with_for_update()
+    )
+    if pending_approval is not None:
+        pending_approval.status = ApprovalRequestStatus.CANCELLED
+        pending_approval.completed_at = requisition.cancelled_at
+        context.session.add_all(
+            [
+                AuditEvent(
+                    organization_id=context.organization_id,
+                    actor_type=ActorType.USER,
+                    actor_id=context.user_id,
+                    action="approval.cancelled",
+                    object_type="approval_request",
+                    object_id=pending_approval.id,
+                    object_version=1,
+                    changes={"requisition_id": str(requisition.id)},
+                ),
+                OutboxEvent(
+                    organization_id=context.organization_id,
+                    aggregate_type="approval_request",
+                    aggregate_id=pending_approval.id,
+                    aggregate_version=1,
+                    event_type="approval.cancelled",
+                    schema_version=1,
+                    payload={"requisition_id": str(requisition.id)},
+                    actor_id=context.user_id,
+                ),
+            ]
+        )
     _record_change(
         context,
         requisition,

@@ -60,6 +60,22 @@ JSON specifications, and mandatory/preferred requirements. Requirement inputs ma
 number; database constraints preserve the same-tenant, same-requisition relationship. Submission
 requires at least one line and confirmation of every proposed requirement.
 
+## Implemented approval and budget endpoints
+
+| Endpoint | Permission | Behavior |
+|---|---|---|
+| `POST /api/v1/budgets` | `budgets.manage` | Create a dated currency budget and initial ledger allocation |
+| `GET /api/v1/budgets` | `budgets.read` | Return balances derived from ledger deltas |
+| `POST /api/v1/approval-policies` | `approvals.policies.manage` | Create a new effective policy version |
+| `POST /api/v1/requisitions/{id}/approval-requests` | `approvals.request` | Bind submitted snapshot, policy, budget, amount, and quorum |
+| `GET /api/v1/approval-requests/{id}` | `approvals.read` | Return the request and recorded decisions |
+| `POST /api/v1/approval-requests/{id}/approve` | `approvals.decide`, `budgets.reserve` | Record approval and reserve funds when quorum is reached |
+| `POST /api/v1/approval-requests/{id}/reject` | `approvals.decide` | Reject the request and requisition |
+
+The request stores the exact requisition version/digest and a policy snapshot. An approver can
+decide once. Policies can require multiple distinct approvers and prohibit requester
+self-approval. Final approval locks the budget before checking and reserving available funds.
+
 ## Events
 
 Business state and an `outbox_events` row are committed in one transaction. Consumers assume
