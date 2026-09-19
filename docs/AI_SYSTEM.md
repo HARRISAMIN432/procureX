@@ -1,0 +1,52 @@
+# AI system
+
+## Framework decision
+
+LangChain provides model, embedding, prompt, structured-output, retrieval, and typed tool
+interfaces. LangGraph orchestrates bounded multi-step flows, durable checkpoints, branching,
+retries, and human interrupts. ProcureX-owned adapters prevent framework or provider types from
+becoming domain contracts.
+
+## Initial graphs
+
+### `document_analysis_graph`
+
+```text
+authorize source → load parse/OCR result → extract typed fields
+→ validate anchors and arithmetic → human review interrupt
+→ finalize extraction version
+```
+
+### `evaluation_graph`
+
+```text
+load immutable evaluation snapshot → retrieve authorized evidence
+→ evaluate requirements → validate citations → draft summary
+→ unresolved-finding interrupt → finalize analysis run
+```
+
+## Execution contract
+
+- Graph state contains identifiers and derived typed results, not full files or secrets.
+- Every run records tenant, graph/version, thread, source digests, actor, and correlation IDs.
+- PostgreSQL-backed checkpoints are required outside tests and local prototypes.
+- Celery starts/resumes runs and supplies queue-level capacity controls.
+- Replayed nodes use stable application idempotency keys for any persisted effect.
+- A graph cannot approve, issue a PO, send an award, or initiate payment.
+
+## Evidence and safety
+
+- Supplier content is untrusted data and cannot introduce instructions or tools.
+- Retrieval is filtered by current tenant and source authorization before similarity ranking.
+- Structured results are schema-validated; malformed output retries within a fixed bound.
+- Critical prices, quantities, currency, tax, and delivery basis require human verification.
+- Unsupported factual claims abstain or remain unresolved.
+- Tokens, time, retries, calls, and tenant cost have hard caps.
+
+## Evaluation
+
+Model, prompt, parser, graph, and retrieval changes run against a frozen labeled set. Track field
+accuracy, critical errors, citation correctness, unsupported claims, corrections, latency, cost,
+and repeated-run agreement. Deterministic pipeline baselines remain available to determine whether
+additional graph complexity provides measurable value.
+
