@@ -20,8 +20,9 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 | Approval controls | `approval_policies`, `approval_requests`, `approval_decisions` |
 | Budgets | `budgets`, `budget_ledger_entries`, `budget_reservations` |
 | Suppliers | `suppliers`, `supplier_contacts`, `supplier_qualifications`, `supplier_certificates` |
+| Sourcing | `rfqs`, `rfq_items`, `rfq_requirements`, `rfq_revisions`, `rfq_invitations`, `quote_submissions`, `quote_lines`, `rfq_clarifications` |
 
-Later migrations add sourcing, evaluation, order, and finance aggregates
+Later migrations add evaluation, order, and finance aggregates
 described in [DOMAIN.md](DOMAIN.md).
 
 Budget balances are derived from an append-only four-bucket ledger: available, reserved,
@@ -32,6 +33,12 @@ Supplier records are buyer-organization scoped. Registration identity is unique 
 contacts, category qualifications, and certificates remain subordinate tenant-owned records.
 Profile changes to an approved supplier require reapproval. Certificate metadata may reference an
 immutable document version, while the file remains an authenticated Cloudinary asset.
+
+An RFQ is created from one approved requisition and copies its lines and requirements into the
+sourcing boundary. Publication and every amendment create an immutable JSON snapshot with a
+SHA-256 digest. Invitations point to the current published revision; each immutable quote version
+retains the exact revision it answered. Quote lines use composite tenant/parent foreign keys so a
+line cannot reference another RFQ's item or submission.
 
 ## Tenant isolation
 

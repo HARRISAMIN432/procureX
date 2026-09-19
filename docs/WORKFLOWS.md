@@ -26,6 +26,10 @@
 | Supplier | Pending → Approved → Suspended; material changes return Approved → Pending |
 | Supplier qualification | Pending → Qualified/Unqualified → Expired |
 | Supplier certificate | Pending → Verified/Rejected → Expired |
+| RFQ | Draft → Published → Closed; Draft/Published → Cancelled |
+| Invitation | Invited → Acknowledged/Submitted/No bid/Revoked |
+| Quote version | Submitted → Withdrawn |
+| Clarification | Open → Answered |
 
 Failure, cancellation, retry, rejected, stale, and superseded states are explicit. Every transition
 defines actor, preconditions, expected version, atomic writes, audit event, and notifications.
@@ -43,6 +47,13 @@ approval permissions. Approval requires at least one non-expired qualified categ
 approved profile or changing a qualification away from qualified returns the supplier to pending
 review; suspension is allowed only from approved. Every mutation increments the supplier version
 and writes audit/outbox evidence.
+
+The implemented sourcing workflow creates an RFQ only from an approved requisition and copies its
+controlled lines and requirements. Only approved suppliers can be selected. Publication requires
+at least one invitation, creates an immutable digest-bearing revision, and moves the requisition to
+`sourcing`. Amendments create new publication revisions; existing quote versions continue to point
+to the revision they answered. The server rejects post-deadline quotes and premature closure.
+Shared and private clarification visibility is persisted for later supplier-portal enforcement.
 
 ## Required recovery behavior
 

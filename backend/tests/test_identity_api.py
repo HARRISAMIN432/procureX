@@ -29,6 +29,12 @@ def test_identity_routes_are_in_openapi() -> None:
         in schema["paths"]
     )
     assert "/api/v1/suppliers/{supplier_id}/approve" in schema["paths"]
+    assert "/api/v1/rfqs" in schema["paths"]
+    assert "/api/v1/rfqs/{rfq_id}/publish" in schema["paths"]
+    assert "/api/v1/rfqs/{rfq_id}/amend" in schema["paths"]
+    assert "/api/v1/rfq-invitations/{invitation_id}/submissions" in schema["paths"]
+    assert "/api/v1/quote-submissions/{submission_id}/withdraw" in schema["paths"]
+    assert "/api/v1/rfqs/{rfq_id}/clarifications/{clarification_id}/answer" in schema["paths"]
 
 
 def test_bootstrap_schema_normalizes_names() -> None:

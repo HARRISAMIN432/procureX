@@ -45,3 +45,9 @@ the same API authorization and PostgreSQL RLS boundary. Write, qualification, an
 are separate permissions. Banking and payment-change fields are not collected in the current
 slice; adding them requires independent verification, dual review, masking, and stricter audit
 controls.
+
+RFQ publications and quote payloads are immutable digest-bearing snapshots. Tenant-qualified
+foreign keys prevent cross-organization and cross-RFQ references, and the server clock controls
+submission timeliness. The current quote endpoint requires an internal buyer-side intake
+permission; it must not be exposed as supplier self-service until supplier principals, invitation
+credentials, object authorization, rate limits, and competitor-data response filtering are added.

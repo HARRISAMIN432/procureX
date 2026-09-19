@@ -55,6 +55,12 @@ PERMISSION_CATALOG: dict[str, str] = {
     "suppliers.write": "Create and edit supplier profiles",
     "suppliers.qualify": "Assess supplier qualifications and certificates",
     "suppliers.approve": "Approve or suspend suppliers",
+    "sourcing.read": "View RFQs, invitations, submissions, and clarifications",
+    "sourcing.write": "Create and edit draft RFQs",
+    "sourcing.invite": "Select approved suppliers for RFQs",
+    "sourcing.publish": "Publish, amend, close, or cancel RFQs",
+    "sourcing.submissions.manage": "Record supplier quotation submissions",
+    "sourcing.clarifications.write": "Create and answer RFQ clarifications",
 }
 
 

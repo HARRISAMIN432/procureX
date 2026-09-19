@@ -35,6 +35,14 @@ EXPECTED_TABLES = {
     "supplier_contacts",
     "supplier_qualifications",
     "supplier_certificates",
+    "rfqs",
+    "rfq_items",
+    "rfq_requirements",
+    "rfq_revisions",
+    "rfq_invitations",
+    "quote_submissions",
+    "quote_lines",
+    "rfq_clarifications",
 }
 
 

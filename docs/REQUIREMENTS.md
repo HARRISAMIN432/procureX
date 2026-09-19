@@ -25,7 +25,11 @@ reservation slice is also implemented. The initial SUP-01 through SUP-03 buyer-s
 profile, contact, qualification, certificate, approval, and suspension slice is implemented;
 supplier self-service, invitations, duplicate suggestions/merge, reminders, and award eligibility
 enforcement remain later work. Live PostgreSQL migration and concurrency/cross-tenant integration
-tests remain pending until a database service is available.
+tests remain pending until a database service is available. The initial RFQ-01 through RFQ-04 and
+RFQ-06 sourcing slice now covers versioned publication/amendment, approved-supplier invitations,
+deadline-controlled immutable quote versions, cancellation/closure, and clarification records.
+Direct supplier authentication, acknowledgements/no-bid, attachment intake, notification delivery,
+and full portal isolation remain incomplete.
 
 The current backend foundation must provide:
 

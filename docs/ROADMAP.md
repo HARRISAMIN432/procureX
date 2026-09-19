@@ -623,6 +623,12 @@ buyer-scoped supplier directory and qualification workflow. Supplier invitations
 duplicate-review/merge tooling, expiry automation, and sourcing eligibility enforcement remain in
 the P2/P3 backlog and are not claimed complete.
 
+P3 now has its first backend vertical slice: approved-requisition RFQ creation, approved-supplier
+selection, immutable publication/amendment snapshots, revision-bound immutable quote versions,
+deadline enforcement, and shared/private clarification records. Supplier portal identity and
+object filtering, acknowledgements/no-bid, attachments, notifications, idempotency keys, and
+end-to-end PostgreSQL isolation tests remain before the P3 exit gate is complete.
+
 ### 15.1 Suggested responsibilities
 
 - Contributor A: buyer UI, design system and accessibility.

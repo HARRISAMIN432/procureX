@@ -63,3 +63,8 @@ are available through the approval/budget endpoints documented in
 Buyer-scoped supplier profiles, contacts, qualifications, certificates, approval, and suspension
 are available under `/api/v1/suppliers`. The endpoint and permission matrix is documented in
 [`../docs/API.md`](../docs/API.md#implemented-supplier-endpoints).
+
+The first sourcing slice is available under `/api/v1/rfqs` and
+`/api/v1/rfq-invitations`: versioned publication/amendment, approved-supplier invitations,
+deadline-controlled immutable quote versions, and clarifications. See
+[`../docs/API.md`](../docs/API.md#implemented-sourcing-endpoints).

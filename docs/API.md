@@ -96,6 +96,28 @@ Mutations lock the supplier aggregate and emit audit and outbox records. Sensiti
 banking fields are intentionally excluded until an independently verified dual-review workflow is
 implemented.
 
+## Implemented sourcing endpoints
+
+| Endpoint | Permission | Behavior |
+|---|---|---|
+| `POST /api/v1/rfqs` | `sourcing.write` | Create a draft from an approved requisition and copy its controlled requirements |
+| `GET /api/v1/rfqs` | `sourcing.read` | Return the tenant RFQ directory with stable pagination |
+| `GET /api/v1/rfqs/{id}` | `sourcing.read` | Return items, requirements, invitations, quote versions, and clarifications |
+| `PUT /api/v1/rfqs/{id}` | `sourcing.write` | Replace draft header/terms using `expected_version` |
+| `POST /api/v1/rfqs/{id}/invitations` | `sourcing.invite` | Add approved suppliers before publication |
+| `POST /api/v1/rfqs/{id}/publish` | `sourcing.publish` | Create immutable publication 1 and move the requisition to sourcing |
+| `POST /api/v1/rfqs/{id}/amend` | `sourcing.publish` | Create a new immutable publication with a reason and future deadline |
+| `POST /api/v1/rfqs/{id}/close` | `sourcing.publish` | Close after the server-side deadline |
+| `POST /api/v1/rfqs/{id}/cancel` | `sourcing.publish` | Cancel an open/draft RFQ with a reason |
+| `POST /api/v1/rfq-invitations/{id}/submissions` | `sourcing.submissions.manage` | Record an immutable, deadline-checked quote version against the invitation's RFQ revision |
+| `POST /api/v1/quote-submissions/{id}/withdraw` | `sourcing.submissions.manage` | Withdraw only the latest quote before the deadline using the expected RFQ version |
+| `POST /api/v1/rfqs/{id}/clarifications` | `sourcing.clarifications.write` | Create a shared or invitation-private question before the deadline |
+| `POST /api/v1/rfqs/{id}/clarifications/{clarification_id}/answer` | `sourcing.clarifications.write` | Answer an open clarification and preserve its visibility |
+
+The current submission endpoint is a controlled buyer-side intake API. Direct supplier portal
+authentication, acknowledgement/no-bid commands, attachment intake, outbound notifications, and
+idempotency-key middleware remain P3 work and must land before external suppliers use the API.
+
 ## Events
 
 Business state and an `outbox_events` row are committed in one transaction. Consumers assume

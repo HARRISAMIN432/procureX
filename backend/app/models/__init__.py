@@ -25,6 +25,16 @@ from app.models.requisitions import (
     RequisitionRequirement,
     RequisitionRevision,
 )
+from app.models.sourcing import (
+    QuoteLine,
+    QuoteSubmission,
+    Rfq,
+    RfqClarification,
+    RfqInvitation,
+    RfqItem,
+    RfqRequirement,
+    RfqRevision,
+)
 from app.models.suppliers import (
     Supplier,
     SupplierCertificate,
@@ -60,6 +70,14 @@ __all__ = [
     "SupplierCertificate",
     "SupplierContact",
     "SupplierQualification",
+    "QuoteLine",
+    "QuoteSubmission",
+    "Rfq",
+    "RfqClarification",
+    "RfqInvitation",
+    "RfqItem",
+    "RfqRequirement",
+    "RfqRevision",
     "Requisition",
     "RequisitionLine",
     "RequisitionRequirement",
