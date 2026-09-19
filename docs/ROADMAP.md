@@ -617,6 +617,12 @@ Each phase must produce working vertical slices, tests and documentation. Demons
 | P8: stabilization | 25–28 | Security fixes, failure drills, performance tuning, accessible critical screens, backup restore and pilot onboarding | All R1 release checks pass; known limitations explicitly approved for supervised pilot |
 | P9: evaluation and handover | 29–32 | Controlled user study, frozen benchmark, thesis/report, demo, user guides, runbooks and evidence archive | Reproducible results, accepted R1 scope and prioritized R2 backlog |
 
+Current implementation progress: P2 now includes requisition drafts/submission, versioned approval
+policies, quorum decisions, append-only budget reservations, and the first SUP-01 through SUP-03
+buyer-scoped supplier directory and qualification workflow. Supplier invitations/self-service,
+duplicate-review/merge tooling, expiry automation, and sourcing eligibility enforcement remain in
+the P2/P3 backlog and are not claimed complete.
+
 ### 15.1 Suggested responsibilities
 
 - Contributor A: buyer UI, design system and accessibility.

@@ -31,6 +31,10 @@ EXPECTED_TABLES = {
     "approval_policies",
     "approval_requests",
     "approval_decisions",
+    "suppliers",
+    "supplier_contacts",
+    "supplier_qualifications",
+    "supplier_certificates",
 }
 
 

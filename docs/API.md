@@ -76,6 +76,26 @@ The request stores the exact requisition version/digest and a policy snapshot. A
 decide once. Policies can require multiple distinct approvers and prohibit requester
 self-approval. Final approval locks the budget before checking and reserving available funds.
 
+## Implemented supplier endpoints
+
+| Endpoint | Permission | Behavior |
+|---|---|---|
+| `POST /api/v1/suppliers` | `suppliers.write` | Create a buyer-scoped pending supplier and contacts |
+| `GET /api/v1/suppliers` | `suppliers.read` | Return a stable paginated tenant directory |
+| `GET /api/v1/suppliers/{id}` | `suppliers.read` | Return profile, contacts, qualifications, and certificates |
+| `PUT /api/v1/suppliers/{id}` | `suppliers.write` | Replace an editable profile using `expected_version`; approved profiles return to pending review |
+| `POST /api/v1/suppliers/{id}/qualifications` | `suppliers.qualify` | Add a pending category qualification |
+| `POST /api/v1/suppliers/{id}/qualifications/{qualification_id}/decision` | `suppliers.qualify` | Record a qualified or unqualified assessment |
+| `POST /api/v1/suppliers/{id}/certificates` | `suppliers.qualify` | Register certificate metadata and an optional immutable document version |
+| `POST /api/v1/suppliers/{id}/certificates/{certificate_id}/review` | `suppliers.qualify` | Verify or reject a certificate |
+| `POST /api/v1/suppliers/{id}/approve` | `suppliers.approve` | Approve a version with at least one current qualification |
+| `POST /api/v1/suppliers/{id}/suspend` | `suppliers.approve` | Suspend an approved supplier with a reason |
+
+Supplier registration and certificate identities are unique inside the buyer organization.
+Mutations lock the supplier aggregate and emit audit and outbox records. Sensitive payment and
+banking fields are intentionally excluded until an independently verified dual-review workflow is
+implemented.
+
 ## Events
 
 Business state and an `outbox_events` row are committed in one transaction. Consumers assume

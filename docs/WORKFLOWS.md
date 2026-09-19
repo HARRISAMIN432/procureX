@@ -23,6 +23,9 @@
 | Analysis run | Queued → Running → Awaiting review → Completed |
 | Job | Queued → Running → Completed |
 | Requisition | Draft → Submitted → Approved → Sourcing → Ordered → Closed |
+| Supplier | Pending → Approved → Suspended; material changes return Approved → Pending |
+| Supplier qualification | Pending → Qualified/Unqualified → Expired |
+| Supplier certificate | Pending → Verified/Rejected → Expired |
 
 Failure, cancellation, retry, rejected, stale, and superseded states are explicit. Every transition
 defines actor, preconditions, expected version, atomic writes, audit event, and notifications.
@@ -33,6 +36,13 @@ writes an immutable JSON snapshot with a SHA-256 digest. An approval request bin
 to a versioned policy and dated budget. Distinct decisions accumulate until quorum; final approval
 and budget reservation occur atomically. Change-request and reservation-release commands remain
 for the next refinement slice.
+
+The implemented supplier workflow creates a buyer-scoped pending profile, records contacts,
+category qualifications, and certificate metadata, and separates write, qualification, and
+approval permissions. Approval requires at least one non-expired qualified category. Editing an
+approved profile or changing a qualification away from qualified returns the supplier to pending
+review; suspension is allowed only from approved. Every mutation increments the supplier version
+and writes audit/outbox evidence.
 
 ## Required recovery behavior
 

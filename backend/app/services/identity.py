@@ -51,6 +51,10 @@ PERMISSION_CATALOG: dict[str, str] = {
     "approvals.request": "Request approval for a submitted requisition",
     "approvals.decide": "Approve or reject assigned procurement decisions",
     "approvals.policies.manage": "Create and version approval policies",
+    "suppliers.read": "View supplier profiles and qualification records",
+    "suppliers.write": "Create and edit supplier profiles",
+    "suppliers.qualify": "Assess supplier qualifications and certificates",
+    "suppliers.approve": "Approve or suspend suppliers",
 }
 
 

@@ -19,13 +19,19 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 | Requisitions | `requisitions`, `requisition_lines`, `requisition_requirements`, `requisition_revisions` |
 | Approval controls | `approval_policies`, `approval_requests`, `approval_decisions` |
 | Budgets | `budgets`, `budget_ledger_entries`, `budget_reservations` |
+| Suppliers | `suppliers`, `supplier_contacts`, `supplier_qualifications`, `supplier_certificates` |
 
-Later migrations add sourcing, supplier, evaluation, order, and finance aggregates
+Later migrations add sourcing, evaluation, order, and finance aggregates
 described in [DOMAIN.md](DOMAIN.md).
 
 Budget balances are derived from an append-only four-bucket ledger: available, reserved,
 committed, and consumed. Reservation locks the budget row, verifies the current available sum, and
 writes balanced available/reserved deltas in the same transaction as final requisition approval.
+
+Supplier records are buyer-organization scoped. Registration identity is unique within a tenant;
+contacts, category qualifications, and certificates remain subordinate tenant-owned records.
+Profile changes to an approved supplier require reapproval. Certificate metadata may reference an
+immutable document version, while the file remains an authenticated Cloudinary asset.
 
 ## Tenant isolation
 

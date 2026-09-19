@@ -21,8 +21,11 @@ Stable requirement identifiers are defined in [ROADMAP.md](ROADMAP.md), Section 
 **Current status:** configuration, schema, local identity bootstrap, RBAC context, organization
 reads, versioned settings APIs, and the REQ-01/REQ-02 draft-to-submission requisition slice are
 implemented. The initial REQ-03/REQ-04 approval-policy, quorum, rejection, budget-ledger, and atomic
-reservation slice is also implemented. Live PostgreSQL migration and concurrency/cross-tenant
-integration tests remain pending until a database service is available.
+reservation slice is also implemented. The initial SUP-01 through SUP-03 buyer-scoped supplier
+profile, contact, qualification, certificate, approval, and suspension slice is implemented;
+supplier self-service, invitations, duplicate suggestions/merge, reminders, and award eligibility
+enforcement remain later work. Live PostgreSQL migration and concurrency/cross-tenant integration
+tests remain pending until a database service is available.
 
 The current backend foundation must provide:
 

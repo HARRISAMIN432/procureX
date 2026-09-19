@@ -39,3 +39,9 @@ development header mechanism enabled.
 Approval requests bind immutable requisition and policy versions. Distinct approvers are enforced
 by a database uniqueness constraint, requester self-approval can be prohibited by policy, and the
 final approver must also hold the separate `budgets.reserve` permission.
+
+Supplier profiles, contacts, qualifications, and certificates are tenant-owned and protected by
+the same API authorization and PostgreSQL RLS boundary. Write, qualification, and approval powers
+are separate permissions. Banking and payment-change fields are not collected in the current
+slice; adding them requires independent verification, dual review, masking, and stricter audit
+controls.

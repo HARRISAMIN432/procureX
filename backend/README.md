@@ -59,3 +59,7 @@ and outbox events. See [the API reference](../docs/API.md#implemented-requisitio
 Approval policies, quorum decisions, budgets, append-only ledger balances, and atomic reservation
 are available through the approval/budget endpoints documented in
 [`../docs/API.md`](../docs/API.md#implemented-approval-and-budget-endpoints).
+
+Buyer-scoped supplier profiles, contacts, qualifications, certificates, approval, and suspension
+are available under `/api/v1/suppliers`. The endpoint and permission matrix is documented in
+[`../docs/API.md`](../docs/API.md#implemented-supplier-endpoints).

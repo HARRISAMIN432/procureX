@@ -25,6 +25,12 @@ from app.models.requisitions import (
     RequisitionRequirement,
     RequisitionRevision,
 )
+from app.models.suppliers import (
+    Supplier,
+    SupplierCertificate,
+    SupplierContact,
+    SupplierQualification,
+)
 
 __all__ = [
     "AnalysisRun",
@@ -50,6 +56,10 @@ __all__ = [
     "Role",
     "RolePermission",
     "User",
+    "Supplier",
+    "SupplierCertificate",
+    "SupplierContact",
+    "SupplierQualification",
     "Requisition",
     "RequisitionLine",
     "RequisitionRequirement",
