@@ -130,16 +130,20 @@ idempotency-key middleware remain P3 work and must land before external supplier
 | `POST /api/v1/documents/upload-intents` | `documents.write` | Validate metadata, create a quarantined immutable version, and return a short-lived signed Cloudinary upload request |
 | `POST /api/v1/documents/{id}/versions/{version_id}/complete-upload` | `documents.write` | Verify the exact authenticated/raw provider response, register the asset, and enqueue scanning once |
 | `POST /api/v1/documents/versions/{version_id}/scan-results` | `documents.scan` | Record a trusted scanner result and gate parsing/rejection |
+| `POST /api/v1/documents/versions/{version_id}/parse-results` | `documents.process` | Idempotently record an immutable native/OCR/hybrid attempt with ordered pages and tables |
 | `GET /api/v1/documents` | `documents.read` | List tenant documents with version, asset, and scan state |
 | `GET /api/v1/documents/{id}` | `documents.read` | Return one tenant document and its immutable version history |
 
 The intake API currently supports PDF, XLSX, DOCX, JPEG, and PNG with a configurable byte limit
 (25 MiB by default). Filenames must be basenames, hashes are lowercase SHA-256 declarations, and
 upload intents expire after ten minutes by default. Assets remain quarantined and unavailable to
-parsers until an authorized clean scan result advances the version to `parsing`. A scanner error
-keeps the asset quarantined for an owned retry; an infected result rejects the version. The scan
-worker/provider integration, server-side byte/hash reconciliation, parsing/OCR, extraction, review,
-and authorized download URLs remain P4 work.
+parsers until an authorized clean scan result advances the version to `parsing` and queues one
+parse job. Parser results use a stable `result_key`: replaying the same content returns the existing
+result, while reusing the key with changed content is a conflict. Successful native, OCR, or hybrid
+results require consecutive pages and advance the version to `parsed`; failed attempts remain
+immutable while the version stays recoverable in `parsing`. The scan and parser worker/provider
+integrations, server-side byte/hash reconciliation, extraction, review, and authorized download
+URLs remain P4 work.
 
 ## Events
 

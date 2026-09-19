@@ -35,8 +35,10 @@ attachment intake, notification delivery, and full portal isolation remain incom
 The initial P4/DOC-01 and DOC-02 intake slice now provides constrained PDF/XLSX/DOCX/JPEG/PNG
 upload intents, immutable authenticated Cloudinary identities, provider-response verification,
 quarantine state, idempotent scan dispatch, trusted scan-result recording, and tenant document
-reads. Actual scanner execution, server-side byte/hash verification, parsing/OCR, extraction,
-evidence anchors, review corrections, and document download authorization remain incomplete.
+reads. The follow-on P4 slice adds idempotent native/OCR/hybrid result ingestion, immutable parser
+attempts, canonical result digests, and ordered page/text/table sources. Actual scanner/parser
+execution, server-side byte/hash verification, structured extraction, evidence anchors, review
+corrections, and document download authorization remain incomplete.
 
 The current backend foundation must provide:
 

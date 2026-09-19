@@ -19,7 +19,7 @@
 |---|---|
 | Membership | Invited → Active → Suspended/Revoked |
 | Document | Quarantined → Scanning → Ready → Archived |
-| Document version | Quarantined → Scanning → Parsing → Extracted → Reviewed |
+| Document version | Quarantined → Scanning → Parsing → Parsed → Extracted → Reviewed |
 | Analysis run | Queued → Running → Awaiting review → Completed |
 | Job | Queued → Running → Completed |
 | Requisition | Draft → Submitted → Approved → Sourcing → Ordered → Closed |
@@ -65,6 +65,13 @@ delivery type, and valid provider signature before the asset is registered and o
 queued. A clean trusted scan marks the asset verified and moves the version to `parsing`; an
 infected result rejects it; a scanner error leaves it quarantined for retry. No parser, OCR, model,
 or user download may consume an asset while its version is quarantined or scanning.
+
+A clean scan also queues one `document.parse` job. A parser worker reports an immutable native,
+OCR, or hybrid attempt using a stable result key. Identical replay is accepted without duplicate
+pages or events; changed content under the same key is rejected. Failed attempts retain their error
+and leave the version in `parsing` for recovery. A completed attempt must contain consecutive page
+numbers and persists source labels, text, dimensions, OCR confidence, and tables before moving the
+version to `parsed`. Extraction may consume only a completed parse of that version.
 
 ## Required recovery behavior
 

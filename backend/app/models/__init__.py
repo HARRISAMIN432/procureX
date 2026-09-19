@@ -7,7 +7,14 @@ from app.models.approvals import (
     BudgetLedgerEntry,
     BudgetReservation,
 )
-from app.models.documents import CloudinaryAsset, Document, DocumentScan, DocumentVersion
+from app.models.documents import (
+    CloudinaryAsset,
+    Document,
+    DocumentPage,
+    DocumentParse,
+    DocumentScan,
+    DocumentVersion,
+)
 from app.models.identity import (
     Membership,
     MembershipRole,
@@ -53,6 +60,8 @@ __all__ = [
     "BudgetLedgerEntry",
     "BudgetReservation",
     "Document",
+    "DocumentPage",
+    "DocumentParse",
     "DocumentScan",
     "DocumentVersion",
     "Job",

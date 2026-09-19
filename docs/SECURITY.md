@@ -27,6 +27,12 @@ The asset remains quarantined until a separately permissioned scanner reports cl
 worker must independently download and verify bytes/hash before parsing; that worker integration is
 not yet implemented, so the current slice is not a complete hostile-file defense.
 
+Parser/OCR results require a separate `documents.process` permission and are accepted only for a
+verified asset in `parsing`. Result keys make worker replay detectable, and each successful result
+is canonically digested with tenant-qualified page ownership. Parsed text and tables remain
+untrusted supplier content: they do not become verified fields and must never be treated as model
+instructions.
+
 ## AI-specific controls
 
 Models have no purchasing authority, unrestricted database access, or arbitrary outbound network

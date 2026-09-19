@@ -16,6 +16,8 @@ EXPECTED_TABLES = {
     "document_versions",
     "cloudinary_assets",
     "document_scans",
+    "document_parses",
+    "document_pages",
     "analysis_runs",
     "model_invocations",
     "jobs",
@@ -61,3 +63,6 @@ def test_enum_values_use_wire_values() -> None:
     status_type = Base.metadata.tables["organizations"].c.status.type
     assert isinstance(status_type, Enum)
     assert status_type.enums == ["active", "suspended", "closing", "closed"]
+    document_version_status = Base.metadata.tables["document_versions"].c.status.type
+    assert isinstance(document_version_status, Enum)
+    assert "parsed" in document_version_status.enums

@@ -40,3 +40,7 @@ A logical document can have multiple immutable versions. Each version has an ori
 one authenticated Cloudinary asset, scan results, and derived evidence. Corrections create new
 records and never overwrite source bytes or prior review history.
 
+Parser/OCR attempts are immutable children of a document version. Each attempt is content-digested
+and owns ordered page/source records; retries create a new attempt unless they replay the same
+result key and identical content. Parsed pages are evidence sources, not verified commercial
+facts—structured fields and human review remain separate downstream records.

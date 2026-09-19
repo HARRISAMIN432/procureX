@@ -13,6 +13,7 @@ from app.schemas.documents import (
     DocumentUploadComplete,
     DocumentUploadIntentCreate,
     DocumentUploadIntentRead,
+    ParseResultCreate,
     ScanResultCreate,
 )
 from app.services.documents import (
@@ -23,6 +24,7 @@ from app.services.documents import (
     create_upload_intent,
     list_documents,
     read_document,
+    record_parse_result,
     record_scan_result,
 )
 
@@ -90,6 +92,15 @@ async def scan_result(
     context: Annotated[RequestContext, Depends(require_permission("documents.scan"))],
 ) -> DocumentRead:
     return await execute(lambda: record_scan_result(context, version_id, payload))
+
+
+@router.post("/versions/{version_id}/parse-results", response_model=DocumentRead)
+async def parse_result(
+    version_id: UUID,
+    payload: ParseResultCreate,
+    context: Annotated[RequestContext, Depends(require_permission("documents.process"))],
+) -> DocumentRead:
+    return await execute(lambda: record_parse_result(context, version_id, payload))
 
 
 @router.get("", response_model=DocumentList)

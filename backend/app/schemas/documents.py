@@ -1,13 +1,16 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.documents import (
     AssetStatus,
     DocumentStatus,
     DocumentVersionStatus,
+    ParseKind,
+    ParseStatus,
     ScanStatus,
 )
 
@@ -113,6 +116,80 @@ class DocumentScanRead(BaseModel):
     created_at: datetime
 
 
+class DocumentPageWrite(BaseModel):
+    page_number: int = Field(gt=0)
+    source_label: str | None = Field(default=None, max_length=200)
+    text: str = Field(max_length=2_000_000)
+    width: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=4)
+    height: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=4)
+    ocr_confidence: Decimal | None = Field(
+        default=None, ge=0, le=1, max_digits=5, decimal_places=4
+    )
+    tables: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+
+
+class ParseResultCreate(BaseModel):
+    result_key: str = Field(min_length=8, max_length=200, pattern=r"^[A-Za-z0-9._:-]+$")
+    parser: str = Field(min_length=1, max_length=100)
+    parser_version: str = Field(min_length=1, max_length=100)
+    kind: ParseKind
+    status: ParseStatus
+    pages: list[DocumentPageWrite] = Field(default_factory=list, max_length=500)
+    error_code: str | None = Field(
+        default=None, max_length=100, pattern=r"^[a-z][a-z0-9_]*$"
+    )
+    error_detail: str | None = Field(default=None, max_length=5000)
+
+    _parser = field_validator("parser")(normalized_text)
+    _parser_version = field_validator("parser_version")(normalized_text)
+
+    @model_validator(mode="after")
+    def validate_outcome(self) -> "ParseResultCreate":
+        if self.status is ParseStatus.COMPLETED:
+            if not self.pages:
+                raise ValueError("Completed parse results require at least one page")
+            numbers = [page.page_number for page in self.pages]
+            if numbers != list(range(1, len(numbers) + 1)):
+                raise ValueError("page_number values must be consecutive starting at 1")
+            if self.error_code is not None or self.error_detail is not None:
+                raise ValueError("Completed parse results cannot include an error")
+        else:
+            if self.pages:
+                raise ValueError("Failed parse results cannot include pages")
+            if self.error_code is None:
+                raise ValueError("Failed parse results require error_code")
+        return self
+
+
+class DocumentPageRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    page_number: int
+    source_label: str | None
+    text: str
+    width: Decimal | None
+    height: Decimal | None
+    ocr_confidence: Decimal | None
+    tables: list[dict[str, Any]]
+
+
+class DocumentParseRead(BaseModel):
+    id: UUID
+    version: int
+    result_key: str
+    parser: str
+    parser_version: str
+    kind: ParseKind
+    status: ParseStatus
+    page_count: int
+    content_digest: str
+    error_code: str | None
+    error_detail: str | None
+    created_at: datetime
+    pages: list[DocumentPageRead]
+
+
 class DocumentVersionRead(BaseModel):
     id: UUID
     version: int
@@ -125,6 +202,7 @@ class DocumentVersionRead(BaseModel):
     created_at: datetime
     asset: CloudinaryAssetRead | None
     scans: list[DocumentScanRead]
+    parses: list[DocumentParseRead]
 
 
 class DocumentRead(BaseModel):

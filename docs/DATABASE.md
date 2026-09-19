@@ -13,7 +13,7 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 |---|---|
 | Identity | `organizations`, `users`, `memberships`, `roles`, `permissions`, `role_permissions`, `membership_roles` |
 | Configuration | `organization_settings` |
-| Documents | `documents`, `document_versions`, `cloudinary_assets`, `document_scans` |
+| Documents | `documents`, `document_versions`, `cloudinary_assets`, `document_scans`, `document_parses`, `document_pages` |
 | AI execution | `analysis_runs`, `model_invocations` |
 | Platform | `jobs`, `outbox_events`, `audit_events` |
 | Requisitions | `requisitions`, `requisition_lines`, `requisition_requirements`, `requisition_revisions` |
@@ -72,3 +72,11 @@ identity, declared byte count, and upload response signature are verified. Compl
 tenant-scoped `document.scan` job using the document-version ID as its idempotency key. Scan results
 are append-only per scanner/version; only a clean result marks the asset verified and permits the
 document version to enter parsing.
+
+Immutable parser/OCR attempts live in `document_parses`; ordered source output lives in
+`document_pages`. Each attempt has a tenant-and-version-scoped result key, monotonic attempt
+version, parser identity, native/OCR/hybrid kind, outcome, page count, and canonical SHA-256 content
+digest. Page rows retain source label, text, dimensions, OCR confidence, and structured table data.
+Composite foreign keys prevent pages from being attached to a parse from another tenant or
+document version. Failed attempts remain evidence and permit a later attempt; only a completed
+attempt moves the document version from `parsing` to `parsed`.

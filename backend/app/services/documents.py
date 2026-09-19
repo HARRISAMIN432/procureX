@@ -1,3 +1,5 @@
+import hashlib
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -14,22 +16,28 @@ from app.models.documents import (
     AssetStatus,
     CloudinaryAsset,
     Document,
+    DocumentPage,
+    DocumentParse,
     DocumentScan,
     DocumentStatus,
     DocumentVersion,
     DocumentVersionStatus,
+    ParseStatus,
     ScanStatus,
 )
 from app.models.platform import ActorType, AuditEvent, Job, JobStatus, OutboxEvent
 from app.schemas.documents import (
     CloudinaryAssetRead,
     DocumentList,
+    DocumentPageRead,
+    DocumentParseRead,
     DocumentRead,
     DocumentScanRead,
     DocumentUploadComplete,
     DocumentUploadIntentCreate,
     DocumentUploadIntentRead,
     DocumentVersionRead,
+    ParseResultCreate,
     ScanResultCreate,
 )
 
@@ -46,11 +54,20 @@ class DocumentValidationError(ValueError):
     pass
 
 
+def _parse_result_digest(payload: ParseResultCreate) -> str:
+    canonical = json.dumps(
+        payload.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+    ).encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def _record_event(
     context: RequestContext,
     version: DocumentVersion,
     action: str,
     changes: dict[str, object],
+    *,
+    event_version: int | None = None,
 ) -> None:
     context.session.add_all(
         [
@@ -68,7 +85,7 @@ def _record_event(
                 organization_id=context.organization_id,
                 aggregate_type="document_version",
                 aggregate_id=version.id,
-                aggregate_version=version.version,
+                aggregate_version=event_version or version.version,
                 event_type=action,
                 schema_version=1,
                 payload={
@@ -276,6 +293,12 @@ async def record_scan_result(
     )
     if duplicate is not None:
         raise DocumentConflictError("This scanner result is already recorded")
+    scan_attempts = await context.session.scalar(
+        select(func.count(DocumentScan.id)).where(
+            DocumentScan.organization_id == context.organization_id,
+            DocumentScan.document_version_id == version.id,
+        )
+    )
     asset = await context.session.scalar(
         select(CloudinaryAsset)
         .where(
@@ -314,6 +337,20 @@ async def record_scan_result(
             job.status = JobStatus.COMPLETED
             job.completed_at = datetime.now(UTC)
             job.result = {"scan_status": payload.status.value}
+        context.session.add(
+            Job(
+                organization_id=context.organization_id,
+                job_type="document.parse",
+                status=JobStatus.QUEUED,
+                idempotency_key=f"document-parse:{version.id}",
+                payload={
+                    "document_id": str(document.id),
+                    "document_version_id": str(version.id),
+                    "media_type": version.media_type,
+                    "sha256": version.sha256,
+                },
+            )
+        )
     elif payload.status is ScanStatus.INFECTED:
         version.status = DocumentVersionStatus.REJECTED
         document.status = DocumentStatus.REJECTED
@@ -336,6 +373,127 @@ async def record_scan_result(
             "scanner_version": payload.scanner_version,
             "scan_status": payload.status.value,
         },
+        event_version=(scan_attempts or 0) + 1,
+    )
+    await context.session.flush()
+    return await read_document(context, document.id)
+
+
+async def record_parse_result(
+    context: RequestContext,
+    version_id: uuid.UUID,
+    payload: ParseResultCreate,
+) -> DocumentRead:
+    candidate = await context.session.scalar(
+        select(DocumentVersion).where(
+            DocumentVersion.organization_id == context.organization_id,
+            DocumentVersion.id == version_id,
+        )
+    )
+    if candidate is None:
+        raise DocumentNotFoundError("Document version not found")
+    document, version = await _locked_version(context, candidate.document_id, version_id)
+    digest = _parse_result_digest(payload)
+    existing = await context.session.scalar(
+        select(DocumentParse).where(
+            DocumentParse.organization_id == context.organization_id,
+            DocumentParse.document_version_id == version.id,
+            DocumentParse.result_key == payload.result_key,
+        )
+    )
+    if existing is not None:
+        if existing.content_digest != digest:
+            raise DocumentConflictError("Parse result key was reused with different content")
+        return await read_document(context, document.id)
+    if version.status is not DocumentVersionStatus.PARSING:
+        raise DocumentConflictError(f"Document version is {version.status.value}")
+    asset_status = await context.session.scalar(
+        select(CloudinaryAsset.status).where(
+            CloudinaryAsset.organization_id == context.organization_id,
+            CloudinaryAsset.document_version_id == version.id,
+        )
+    )
+    if asset_status is not AssetStatus.VERIFIED:
+        raise DocumentConflictError("Only a verified asset can be parsed")
+    current_version = await context.session.scalar(
+        select(func.max(DocumentParse.version)).where(
+            DocumentParse.organization_id == context.organization_id,
+            DocumentParse.document_version_id == version.id,
+        )
+    )
+    parse = DocumentParse(
+        id=uuid.uuid4(),
+        organization_id=context.organization_id,
+        document_version_id=version.id,
+        version=(current_version or 0) + 1,
+        result_key=payload.result_key,
+        parser=payload.parser,
+        parser_version=payload.parser_version,
+        kind=payload.kind,
+        status=payload.status,
+        page_count=len(payload.pages),
+        content_digest=digest,
+        error_code=payload.error_code,
+        error_detail=payload.error_detail,
+    )
+    context.session.add(parse)
+    context.session.add_all(
+        [
+            DocumentPage(
+                organization_id=context.organization_id,
+                document_version_id=version.id,
+                parse_id=parse.id,
+                page_number=page.page_number,
+                source_label=page.source_label,
+                text=page.text,
+                width=page.width,
+                height=page.height,
+                ocr_confidence=page.ocr_confidence,
+                tables=page.tables,
+            )
+            for page in payload.pages
+        ]
+    )
+    parse_job = await context.session.scalar(
+        select(Job)
+        .where(
+            Job.organization_id == context.organization_id,
+            Job.idempotency_key == f"document-parse:{version.id}",
+        )
+        .with_for_update()
+    )
+    if payload.status is ParseStatus.COMPLETED:
+        version.status = DocumentVersionStatus.PARSED
+        event_action = "document.parse_completed"
+        if parse_job is not None:
+            parse_job.status = JobStatus.COMPLETED
+            parse_job.completed_at = datetime.now(UTC)
+            parse_job.result = {
+                "parse_id": str(parse.id),
+                "page_count": len(payload.pages),
+                "content_digest": digest,
+            }
+    else:
+        event_action = "document.parse_failed"
+        if parse_job is not None:
+            parse_job.status = JobStatus.FAILED
+            parse_job.completed_at = datetime.now(UTC)
+            parse_job.error_code = payload.error_code
+            parse_job.error_detail = payload.error_detail
+    _record_event(
+        context,
+        version,
+        event_action,
+        {
+            "parse_id": str(parse.id),
+            "parse_version": parse.version,
+            "parser": payload.parser,
+            "parser_version": payload.parser_version,
+            "parse_status": payload.status.value,
+            "page_count": len(payload.pages),
+            "content_digest": digest,
+        },
+        event_version=parse.version,
     )
     await context.session.flush()
     return await read_document(context, document.id)
@@ -378,6 +536,45 @@ async def read_document(context: RequestContext, document_id: uuid.UUID) -> Docu
                 .order_by(DocumentScan.created_at, DocumentScan.id)
             )
         )
+        parses = list(
+            await context.session.scalars(
+                select(DocumentParse)
+                .where(
+                    DocumentParse.organization_id == context.organization_id,
+                    DocumentParse.document_version_id == version.id,
+                )
+                .order_by(DocumentParse.version)
+            )
+        )
+        parse_views: list[DocumentParseRead] = []
+        for parse in parses:
+            pages = list(
+                await context.session.scalars(
+                    select(DocumentPage)
+                    .where(
+                        DocumentPage.organization_id == context.organization_id,
+                        DocumentPage.parse_id == parse.id,
+                    )
+                    .order_by(DocumentPage.page_number)
+                )
+            )
+            parse_views.append(
+                DocumentParseRead(
+                    id=parse.id,
+                    version=parse.version,
+                    result_key=parse.result_key,
+                    parser=parse.parser,
+                    parser_version=parse.parser_version,
+                    kind=parse.kind,
+                    status=parse.status,
+                    page_count=parse.page_count,
+                    content_digest=parse.content_digest,
+                    error_code=parse.error_code,
+                    error_detail=parse.error_detail,
+                    created_at=parse.created_at,
+                    pages=[DocumentPageRead.model_validate(page) for page in pages],
+                )
+            )
         version_views.append(
             DocumentVersionRead(
                 id=version.id,
@@ -391,6 +588,7 @@ async def read_document(context: RequestContext, document_id: uuid.UUID) -> Docu
                 created_at=version.created_at,
                 asset=CloudinaryAssetRead.model_validate(asset) if asset else None,
                 scans=[DocumentScanRead.model_validate(scan) for scan in scans],
+                parses=parse_views,
             )
         )
     return DocumentRead(

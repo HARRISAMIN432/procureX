@@ -3,10 +3,11 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.models.documents import ScanStatus
+from app.models.documents import ParseKind, ParseStatus, ScanStatus
 from app.schemas.documents import (
     DocumentUploadComplete,
     DocumentUploadIntentCreate,
+    ParseResultCreate,
     ScanResultCreate,
 )
 
@@ -52,3 +53,49 @@ def test_scan_result_cannot_be_pending() -> None:
             scanner_version="1.4",
             status=ScanStatus.PENDING,
         )
+
+
+def test_completed_parse_requires_consecutive_pages() -> None:
+    with pytest.raises(ValidationError, match="consecutive"):
+        ParseResultCreate(
+            result_key="parse-run-1",
+            parser="pymupdf",
+            parser_version="1.0",
+            kind=ParseKind.NATIVE,
+            status=ParseStatus.COMPLETED,
+            pages=[
+                {"page_number": 1, "text": "First"},
+                {"page_number": 3, "text": "Third"},
+            ],
+        )
+
+
+def test_failed_parse_requires_error_and_no_pages() -> None:
+    with pytest.raises(ValidationError, match="error_code"):
+        ParseResultCreate(
+            result_key="parse-run-1",
+            parser="pymupdf",
+            parser_version="1.0",
+            kind=ParseKind.NATIVE,
+            status=ParseStatus.FAILED,
+        )
+
+
+def test_completed_parse_accepts_ocr_evidence_source() -> None:
+    payload = ParseResultCreate(
+        result_key="parse-run-1",
+        parser="tesseract",
+        parser_version="5.4",
+        kind=ParseKind.OCR,
+        status=ParseStatus.COMPLETED,
+        pages=[
+            {
+                "page_number": 1,
+                "source_label": "Page 1",
+                "text": "Total: PKR 100.00",
+                "ocr_confidence": "0.9750",
+                "tables": [{"rows": [["Total", "100.00"]]}],
+            }
+        ],
+    )
+    assert payload.pages[0].ocr_confidence is not None

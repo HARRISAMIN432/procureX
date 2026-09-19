@@ -5,8 +5,13 @@ import pytest
 
 from app.auth.context import RequestContext
 from app.core.config import Settings
-from app.schemas.documents import DocumentUploadIntentCreate
-from app.services.documents import DocumentValidationError, create_upload_intent
+from app.models.documents import ParseKind, ParseStatus
+from app.schemas.documents import DocumentUploadIntentCreate, ParseResultCreate
+from app.services.documents import (
+    DocumentValidationError,
+    _parse_result_digest,
+    create_upload_intent,
+)
 
 
 @pytest.mark.asyncio
@@ -24,3 +29,20 @@ async def test_upload_intent_enforces_configured_size_before_storage() -> None:
 
     with pytest.raises(DocumentValidationError, match="100-byte"):
         await create_upload_intent(context, settings, payload)
+
+
+def test_parse_result_digest_is_deterministic_and_content_bound() -> None:
+    payload = ParseResultCreate(
+        result_key="parse-run-1",
+        parser="pymupdf",
+        parser_version="1.0",
+        kind=ParseKind.NATIVE,
+        status=ParseStatus.COMPLETED,
+        pages=[{"page_number": 1, "text": "Quoted total: 100.00"}],
+    )
+    same = payload.model_copy(deep=True)
+    changed = payload.model_copy(deep=True)
+    changed.pages[0].text = "Quoted total: 101.00"
+
+    assert _parse_result_digest(payload) == _parse_result_digest(same)
+    assert _parse_result_digest(payload) != _parse_result_digest(changed)

@@ -19,7 +19,8 @@ authorize source → load parse/OCR result → extract typed fields
 
 The graph is not started by upload. It may consume a document version only after the intake and
 malware-scan workflow has moved that immutable version to `parsing`. The signed-upload/quarantine
-slice is implemented; parser/OCR nodes, extraction schemas, evidence validation, checkpoints, and
+and immutable parser-result contracts are implemented; successful results move the version to
+`parsed`. Parser/OCR execution nodes, extraction schemas, evidence validation, checkpoints, and
 human-review interrupts remain pending.
 
 ### `evaluation_graph`

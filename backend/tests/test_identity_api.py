@@ -41,6 +41,7 @@ def test_identity_routes_are_in_openapi() -> None:
         in schema["paths"]
     )
     assert "/api/v1/documents/versions/{version_id}/scan-results" in schema["paths"]
+    assert "/api/v1/documents/versions/{version_id}/parse-results" in schema["paths"]
 
 
 def test_bootstrap_schema_normalizes_names() -> None:

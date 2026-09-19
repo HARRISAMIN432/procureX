@@ -74,3 +74,7 @@ The first P4 document-intake slice is available under `/api/v1/documents`: const
 upload intents, authenticated/raw Cloudinary response verification, immutable asset registration,
 idempotent scan dispatch, and scan-gated parsing/rejection. See the
 [document API reference](../docs/API.md#implemented-document-intake-endpoints).
+
+Clean scans now enqueue an idempotent parse job. Native/OCR/hybrid workers can record digest-bound,
+replay-safe attempts with ordered page text and tables; a successful attempt advances the immutable
+document version to `parsed`. Parser execution and structured extraction remain subsequent P4 work.
