@@ -15,7 +15,12 @@ from app.models.documents import (
     DocumentScan,
     DocumentVersion,
 )
-from app.models.evaluations import Evaluation, OfferEvaluation, RequirementCheck
+from app.models.evaluations import (
+    Evaluation,
+    OfferEvaluation,
+    RequirementCheck,
+    RequirementCheckEvidence,
+)
 from app.models.extractions import EvidenceAnchor, ExtractedField, Extraction, FieldReview
 from app.models.identity import (
     Membership,
@@ -37,6 +42,7 @@ from app.models.requisitions import (
 from app.models.sourcing import (
     QuoteLine,
     QuoteSubmission,
+    QuoteSubmissionDocument,
     Rfq,
     RfqClarification,
     RfqInvitation,
@@ -89,6 +95,7 @@ __all__ = [
     "SupplierQualification",
     "QuoteLine",
     "QuoteSubmission",
+    "QuoteSubmissionDocument",
     "Rfq",
     "RfqClarification",
     "RfqInvitation",
@@ -100,4 +107,5 @@ __all__ = [
     "RequisitionRequirement",
     "RequisitionRevision",
     "RequirementCheck",
+    "RequirementCheckEvidence",
 ]

@@ -60,6 +60,8 @@ ratio. Eligible offers are scored deterministically from exact landed cost and t
 weights that total one; blocked and ineligible offers never receive a score.
 
 Each run creates a new immutable version and digest rather than replacing an earlier comparison.
-The current matrix is reviewer-supplied and rationale-bearing. Requirement-to-document evidence
-links, formal waivers, risk signals, grounded summaries, and allocation optimization remain later
+The current matrix is reviewer-supplied and rationale-bearing. Checks can cite only verified
+anchors from completed extractions of document versions immutably attached to the assessed quote.
+The snapshot also contains a deterministic, non-generative summary. Formal waivers, independent
+reviews, risk signals, model-backed grounded narratives, and allocation optimization remain later
 capabilities.

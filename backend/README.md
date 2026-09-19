@@ -88,5 +88,9 @@ remain integration work.
 The first P5 evaluation slice is available through `/api/v1/rfqs/{id}/evaluations` and
 `/api/v1/evaluations/{id}`. It builds a complete four-state requirement matrix, blocks unresolved
 mandatory criteria, calculates exact landed costs and deterministic weighted scores, and preserves
-each comparison as an immutable digest-bearing version. Requirement outcomes are reviewer inputs;
-document-evidence linkage and grounded summaries remain follow-on P5 work.
+each comparison as an immutable digest-bearing version. Quote submissions can bind immutable
+document versions; evaluation citations must resolve to verified fields from completed extractions
+of those documents. Snapshots include a deterministic summary, and the tested `evaluation_graph`
+pauses on unresolved findings and rejects stale resumes. Requirement outcomes remain reviewer
+inputs; model-backed narratives and production checkpoint/worker integration remain follow-on P5
+work.

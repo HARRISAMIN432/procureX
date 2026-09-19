@@ -4,6 +4,7 @@ import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
+from typing import cast
 
 from sqlalchemy import func, select
 
@@ -14,12 +15,21 @@ from app.models.evaluations import (
     OfferEligibility,
     OfferEvaluation,
     RequirementCheck,
+    RequirementCheckEvidence,
     RequirementOutcome,
+)
+from app.models.extractions import (
+    EvidenceAnchor,
+    ExtractedField,
+    ExtractedFieldStatus,
+    Extraction,
+    ExtractionStatus,
 )
 from app.models.platform import ActorType, AuditEvent, OutboxEvent
 from app.models.sourcing import (
     QuoteLine,
     QuoteSubmission,
+    QuoteSubmissionDocument,
     Rfq,
     RfqRequirement,
     RfqStatus,
@@ -126,6 +136,29 @@ def evaluation_snapshot_digest(snapshot: dict[str, object]) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
+def build_grounded_summary(offers: list[dict[str, object]]) -> dict[str, object]:
+    eligible = [offer for offer in offers if offer["eligibility"] == "eligible"]
+    blocked = [offer for offer in offers if offer["eligibility"] == "blocked"]
+    ineligible = [offer for offer in offers if offer["eligibility"] == "ineligible"]
+    ranked = sorted(
+        (offer for offer in eligible if offer["score"] is not None),
+        key=lambda offer: (-Decimal(str(offer["score"])), str(offer["submission_id"])),
+    )
+    cited_anchor_ids: set[str] = set()
+    for offer in offers:
+        for check in cast(list[dict[str, object]], offer["checks"]):
+            cited_anchor_ids.update(cast(list[str], check["evidence_anchor_ids"]))
+    return {
+        "offer_count": len(offers),
+        "eligible_count": len(eligible),
+        "blocked_count": len(blocked),
+        "ineligible_count": len(ineligible),
+        "leading_submission_id": ranked[0]["submission_id"] if ranked else None,
+        "cited_evidence_anchor_ids": sorted(cited_anchor_ids),
+        "basis": "deterministic_evaluation_snapshot",
+    }
+
+
 async def create_evaluation(
     context: RequestContext, rfq_id: uuid.UUID, payload: EvaluationCreate
 ) -> EvaluationRead:
@@ -177,6 +210,54 @@ async def create_evaluation(
     submission_by_id = {submission.id: submission for submission in submissions}
     if any(submission.currency != rfq.currency for submission in submissions):
         raise EvaluationValidationError("Every quote currency must match the RFQ currency")
+
+    requested_anchor_ids = {
+        anchor_id
+        for offer in payload.offers
+        for check in offer.checks
+        for anchor_id in check.evidence_anchor_ids
+    }
+    valid_evidence_pairs: set[tuple[uuid.UUID, uuid.UUID]] = set()
+    if requested_anchor_ids:
+        evidence_rows = await context.session.execute(
+            select(EvidenceAnchor.id, QuoteSubmissionDocument.submission_id)
+            .join(
+                ExtractedField,
+                (ExtractedField.organization_id == EvidenceAnchor.organization_id)
+                & (ExtractedField.extraction_id == EvidenceAnchor.extraction_id)
+                & (ExtractedField.id == EvidenceAnchor.field_id),
+            )
+            .join(
+                Extraction,
+                (Extraction.organization_id == ExtractedField.organization_id)
+                & (Extraction.id == ExtractedField.extraction_id),
+            )
+            .join(
+                QuoteSubmissionDocument,
+                (QuoteSubmissionDocument.organization_id == EvidenceAnchor.organization_id)
+                & (
+                    QuoteSubmissionDocument.document_version_id
+                    == EvidenceAnchor.document_version_id
+                ),
+            )
+            .where(
+                EvidenceAnchor.organization_id == context.organization_id,
+                EvidenceAnchor.id.in_(requested_anchor_ids),
+                ExtractedField.status == ExtractedFieldStatus.VERIFIED,
+                Extraction.status == ExtractionStatus.COMPLETED,
+            )
+        )
+        valid_evidence_pairs = set(evidence_rows.tuples())
+        for offer in payload.offers:
+            for check in offer.checks:
+                if any(
+                    (anchor_id, offer.submission_id) not in valid_evidence_pairs
+                    for anchor_id in check.evidence_anchor_ids
+                ):
+                    raise EvaluationValidationError(
+                        "Evidence must be a verified anchor from a completed extraction "
+                        "attached to the assessed quote"
+                    )
 
     lines = list(
         await context.session.scalars(
@@ -253,6 +334,9 @@ async def create_evaluation(
                         "requirement_id": str(check.requirement_id),
                         "outcome": check.outcome.value,
                         "rationale": check.rationale,
+                        "evidence_anchor_ids": sorted(
+                            str(anchor_id) for anchor_id in check.evidence_anchor_ids
+                        ),
                     }
                     for check in sorted(
                         offer_input.checks, key=lambda value: str(value.requirement_id)
@@ -267,6 +351,7 @@ async def create_evaluation(
         "currency": rfq.currency,
         "scoring_policy": payload.scoring_policy.model_dump(mode="json"),
         "offers": snapshot_offers,
+        "summary": build_grounded_summary(snapshot_offers),
     }
     digest = evaluation_snapshot_digest(snapshot)
     current_version = await context.session.scalar(
@@ -309,21 +394,30 @@ async def create_evaluation(
                 score=scores[offer_id],
             )
         )
-        context.session.add_all(
-            [
-                RequirementCheck(
-                    organization_id=context.organization_id,
-                    rfq_id=rfq.id,
-                    evaluation_id=evaluation.id,
-                    offer_evaluation_id=offer_id,
-                    rfq_requirement_id=check.requirement_id,
-                    outcome=check.outcome,
-                    is_mandatory=(requirement_by_id[check.requirement_id].priority == "mandatory"),
-                    rationale=check.rationale,
-                )
-                for check in offer_input.checks
-            ]
-        )
+        for check in offer_input.checks:
+            requirement_check = RequirementCheck(
+                id=uuid.uuid4(),
+                organization_id=context.organization_id,
+                rfq_id=rfq.id,
+                evaluation_id=evaluation.id,
+                offer_evaluation_id=offer_id,
+                rfq_requirement_id=check.requirement_id,
+                outcome=check.outcome,
+                is_mandatory=(requirement_by_id[check.requirement_id].priority == "mandatory"),
+                rationale=check.rationale,
+            )
+            context.session.add(requirement_check)
+            context.session.add_all(
+                [
+                    RequirementCheckEvidence(
+                        organization_id=context.organization_id,
+                        evaluation_id=evaluation.id,
+                        requirement_check_id=requirement_check.id,
+                        evidence_anchor_id=anchor_id,
+                    )
+                    for anchor_id in check.evidence_anchor_ids
+                ]
+            )
     context.session.add_all(
         [
             AuditEvent(
@@ -386,6 +480,20 @@ async def read_evaluation(context: RequestContext, evaluation_id: uuid.UUID) -> 
             .order_by(RequirementCheck.rfq_requirement_id)
         )
     )
+    evidence_rows = await context.session.execute(
+        select(
+            RequirementCheckEvidence.requirement_check_id,
+            RequirementCheckEvidence.evidence_anchor_id,
+        )
+        .where(
+            RequirementCheckEvidence.organization_id == context.organization_id,
+            RequirementCheckEvidence.evaluation_id == evaluation.id,
+        )
+        .order_by(RequirementCheckEvidence.evidence_anchor_id)
+    )
+    evidence_by_check: dict[uuid.UUID, list[uuid.UUID]] = {check.id: [] for check in checks}
+    for check_id, anchor_id in evidence_rows.tuples():
+        evidence_by_check[check_id].append(anchor_id)
     checks_by_offer: dict[uuid.UUID, list[RequirementCheck]] = {offer.id: [] for offer in offers}
     for check in checks:
         checks_by_offer[check.offer_evaluation_id].append(check)
@@ -399,6 +507,7 @@ async def read_evaluation(context: RequestContext, evaluation_id: uuid.UUID) -> 
         status=evaluation.status,
         scoring_policy=evaluation.scoring_policy,
         content_digest=evaluation.content_digest,
+        summary=evaluation.snapshot.get("summary", {}),
         created_at=evaluation.created_at,
         offers=[
             OfferEvaluationRead(
@@ -410,7 +519,14 @@ async def read_evaluation(context: RequestContext, evaluation_id: uuid.UUID) -> 
                 preferred_ratio=offer.preferred_ratio,
                 score=offer.score,
                 checks=[
-                    RequirementCheckRead.model_validate(check)
+                    RequirementCheckRead(
+                        id=check.id,
+                        rfq_requirement_id=check.rfq_requirement_id,
+                        outcome=check.outcome,
+                        is_mandatory=check.is_mandatory,
+                        rationale=check.rationale,
+                        evidence_anchor_ids=evidence_by_check[check.id],
+                    )
                     for check in checks_by_offer[offer.id]
                 ],
             )

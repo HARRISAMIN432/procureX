@@ -81,14 +81,18 @@ extraction revisions, and every action appends its previous/new value and reason
 blocked while any field is unresolved or any critical field is not verified. Successful
 finalization completes the analysis run and moves the document version to `reviewed`.
 
-The initial P5 evaluation workflow locks a closed RFQ, checks its expected version, includes every
+The P5 evaluation workflow locks a closed RFQ, checks its expected version, includes every
 current submitted quote version in the RFQ currency, and requires a complete requirement matrix
 for each offer. Mandatory failure makes an offer ineligible, while unresolved or not-applicable
 mandatory criteria block scoring. Exact decimal landed cost and a declared price/preferred
-weighting produce scores only for eligible offers. The service persists the normalized comparison
-and digest as a new immutable version and emits audit/outbox evidence. The present check outcomes
-are entered by an authorized reviewer; linking them to extracted evidence and generating grounded
-summaries are still required before the broader P5 workflow is complete.
+weighting produce scores only for eligible offers. Quote attachments bind immutable document
+versions to the submission. Optional check citations must traverse that binding to a verified field
+in a completed extraction. The service persists the normalized comparison, deterministic summary,
+and digest as a new immutable version and emits audit/outbox evidence. The `evaluation_graph`
+validates the citation gate, interrupts on unresolved findings, and rejects a resume carrying a
+different source digest. Outcomes are still entered by an authorized reviewer; formal waivers,
+independent reviews, model-backed narrative summaries, and production checkpoint invocation remain
+before the broader P5 workflow is complete.
 
 ## Required recovery behavior
 

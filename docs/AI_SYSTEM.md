@@ -33,6 +33,12 @@ load immutable evaluation snapshot → retrieve authorized evidence
 → unresolved-finding interrupt → finalize analysis run
 ```
 
+The implemented graph contract gates finalization on validated citations, interrupts when findings
+remain unresolved, and rejects a resume when the immutable evaluation digest has changed. Evaluation
+snapshots now carry tenant-validated citations and a deterministic summary. Authorized retrieval,
+model-backed narrative generation, persisted analysis-run lifecycle handling, and production
+PostgreSQL checkpoint invocation remain pending.
+
 ## Execution contract
 
 - Graph state contains identifiers and derived typed results, not full files or secrets.

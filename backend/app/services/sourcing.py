@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 
 from app.auth.context import RequestContext
+from app.models.documents import DocumentVersion
 from app.models.platform import ActorType, AuditEvent, OutboxEvent
 from app.models.requisitions import (
     Requisition,
@@ -18,6 +19,7 @@ from app.models.sourcing import (
     InvitationStatus,
     QuoteLine,
     QuoteSubmission,
+    QuoteSubmissionDocument,
     Rfq,
     RfqClarification,
     RfqInvitation,
@@ -319,9 +321,7 @@ def _require_open_invitation_response(rfq: Rfq) -> datetime:
     return now
 
 
-def _require_current_revision(
-    invitation: RfqInvitation, submitted_revision_id: uuid.UUID
-) -> None:
+def _require_current_revision(invitation: RfqInvitation, submitted_revision_id: uuid.UUID) -> None:
     if invitation.rfq_revision_id is None:
         raise SourcingConflictError("Invitation has no published RFQ revision")
     if submitted_revision_id != invitation.rfq_revision_id:
@@ -567,6 +567,20 @@ async def submit_quote(
         if line.is_alternative and not items[line.rfq_item_id].alternatives_allowed:
             raise SourcingValidationError("An alternative was offered for a restricted RFQ item")
 
+    if payload.document_version_ids:
+        attached_versions = set(
+            await context.session.scalars(
+                select(DocumentVersion.id).where(
+                    DocumentVersion.organization_id == context.organization_id,
+                    DocumentVersion.id.in_(payload.document_version_ids),
+                )
+            )
+        )
+        if attached_versions != set(payload.document_version_ids):
+            raise SourcingValidationError(
+                "One or more attachments reference an unknown document version"
+            )
+
     current_version = await context.session.scalar(
         select(func.max(QuoteSubmission.version)).where(
             QuoteSubmission.organization_id == context.organization_id,
@@ -624,6 +638,17 @@ async def submit_quote(
                 description=line.description,
             )
             for line in payload.lines
+        ]
+    )
+    context.session.add_all(
+        [
+            QuoteSubmissionDocument(
+                organization_id=context.organization_id,
+                rfq_id=rfq.id,
+                submission_id=submission.id,
+                document_version_id=document_version_id,
+            )
+            for document_version_id in payload.document_version_ids
         ]
     )
     invitation.status = InvitationStatus.SUBMITTED
@@ -855,6 +880,16 @@ async def read_submission(context: RequestContext, submission_id: uuid.UUID) -> 
             .order_by(QuoteLine.rfq_item_id)
         )
     )
+    document_version_ids = list(
+        await context.session.scalars(
+            select(QuoteSubmissionDocument.document_version_id)
+            .where(
+                QuoteSubmissionDocument.organization_id == context.organization_id,
+                QuoteSubmissionDocument.submission_id == submission.id,
+            )
+            .order_by(QuoteSubmissionDocument.document_version_id)
+        )
+    )
     return SubmissionRead(
         id=submission.id,
         invitation_id=submission.invitation_id,
@@ -870,6 +905,7 @@ async def read_submission(context: RequestContext, submission_id: uuid.UUID) -> 
         content_digest=submission.content_digest,
         submitted_at=submission.submitted_at,
         withdrawn_at=submission.withdrawn_at,
+        document_version_ids=document_version_ids,
         lines=[SubmissionLineRead.model_validate(line) for line in lines],
     )
 

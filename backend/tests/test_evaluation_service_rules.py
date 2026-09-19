@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from app.models.evaluations import OfferEligibility, RequirementOutcome
 from app.services.evaluations import (
+    build_grounded_summary,
     calculate_landed_cost,
     calculate_preferred_ratio,
     calculate_scores,
@@ -75,3 +76,29 @@ def test_snapshot_digest_is_order_independent_for_object_keys() -> None:
     assert evaluation_snapshot_digest({"a": 1, "b": 2}) == evaluation_snapshot_digest(
         {"b": 2, "a": 1}
     )
+
+
+def test_grounded_summary_reports_only_deterministic_snapshot_facts() -> None:
+    offers = [
+        {
+            "submission_id": "submission-1",
+            "eligibility": "eligible",
+            "score": "90.0000",
+            "checks": [{"evidence_anchor_ids": ["anchor-1"]}],
+        },
+        {
+            "submission_id": "submission-2",
+            "eligibility": "blocked",
+            "score": None,
+            "checks": [{"evidence_anchor_ids": []}],
+        },
+    ]
+    assert build_grounded_summary(offers) == {
+        "offer_count": 2,
+        "eligible_count": 1,
+        "blocked_count": 1,
+        "ineligible_count": 0,
+        "leading_submission_id": "submission-1",
+        "cited_evidence_anchor_ids": ["anchor-1"],
+        "basis": "deterministic_evaluation_snapshot",
+    }

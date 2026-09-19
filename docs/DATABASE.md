@@ -20,8 +20,8 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 | Approval controls | `approval_policies`, `approval_requests`, `approval_decisions` |
 | Budgets | `budgets`, `budget_ledger_entries`, `budget_reservations` |
 | Suppliers | `suppliers`, `supplier_contacts`, `supplier_qualifications`, `supplier_certificates` |
-| Sourcing | `rfqs`, `rfq_items`, `rfq_requirements`, `rfq_revisions`, `rfq_invitations`, `quote_submissions`, `quote_lines`, `rfq_clarifications` |
-| Evaluation | `evaluations`, `offer_evaluations`, `requirement_checks` |
+| Sourcing | `rfqs`, `rfq_items`, `rfq_requirements`, `rfq_revisions`, `rfq_invitations`, `quote_submissions`, `quote_lines`, `quote_submission_documents`, `rfq_clarifications` |
+| Evaluation | `evaluations`, `offer_evaluations`, `requirement_checks`, `requirement_check_evidence` |
 
 Later migrations add optimization, order, and finance aggregates
 described in [DOMAIN.md](DOMAIN.md).
@@ -47,8 +47,12 @@ An `evaluation` is an immutable, monotonically versioned comparison of a closed 
 snapshot binds the RFQ/publication version, scoring weights, current quote IDs and digests,
 requirement matrix, exact landed costs, eligibility, and scores under one SHA-256 digest.
 `offer_evaluations` retain calculated offer results; `requirement_checks` preserve every outcome,
-mandatory flag, and reviewer rationale. Tenant-qualified foreign keys prevent an evaluation from
-mixing RFQs, submissions, suppliers, or requirements across ownership boundaries.
+mandatory flag, and reviewer rationale. `quote_submission_documents` freezes which immutable
+document versions accompany a quote. `requirement_check_evidence` can reference only tenant-owned
+anchors, while application validation additionally requires the anchor's field to be verified,
+its extraction completed, and its document attached to the assessed quote. Tenant-qualified
+foreign keys prevent an evaluation from mixing RFQs, submissions, suppliers, requirements, or
+evidence across ownership boundaries.
 
 ## Tenant isolation
 

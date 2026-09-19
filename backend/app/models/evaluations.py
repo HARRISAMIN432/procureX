@@ -152,6 +152,7 @@ class RequirementCheck(UUIDPrimaryKeyMixin, Base):
             ondelete="RESTRICT",
         ),
         UniqueConstraint("organization_id", "offer_evaluation_id", "rfq_requirement_id"),
+        UniqueConstraint("organization_id", "evaluation_id", "id"),
         UniqueConstraint("organization_id", "id"),
     )
 
@@ -165,3 +166,30 @@ class RequirementCheck(UUIDPrimaryKeyMixin, Base):
     )
     is_mandatory: Mapped[bool] = mapped_column(Boolean, nullable=False)
     rationale: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class RequirementCheckEvidence(UUIDPrimaryKeyMixin, Base):
+    __tablename__ = "requirement_check_evidence"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "evaluation_id", "requirement_check_id"],
+            [
+                "requirement_checks.organization_id",
+                "requirement_checks.evaluation_id",
+                "requirement_checks.id",
+            ],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "evidence_anchor_id"],
+            ["evidence_anchors.organization_id", "evidence_anchors.id"],
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint("organization_id", "requirement_check_id", "evidence_anchor_id"),
+        UniqueConstraint("organization_id", "id"),
+    )
+
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    evaluation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    requirement_check_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    evidence_anchor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)

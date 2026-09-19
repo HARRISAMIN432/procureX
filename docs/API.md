@@ -111,7 +111,7 @@ implemented.
 | `POST /api/v1/rfqs/{id}/amend` | `sourcing.publish` | Create a new immutable publication with a reason and future deadline |
 | `POST /api/v1/rfqs/{id}/close` | `sourcing.publish` | Close after the server-side deadline |
 | `POST /api/v1/rfqs/{id}/cancel` | `sourcing.publish` | Cancel an open/draft RFQ with a reason |
-| `POST /api/v1/rfq-invitations/{id}/submissions` | `sourcing.submissions.manage` | Record an immutable, deadline-checked quote only when its explicit `rfq_revision_id` is current |
+| `POST /api/v1/rfq-invitations/{id}/submissions` | `sourcing.submissions.manage` | Record an immutable, deadline-checked quote and its document-version attachments only when its explicit `rfq_revision_id` is current |
 | `POST /api/v1/quote-submissions/{id}/withdraw` | `sourcing.submissions.manage` | Withdraw only the latest quote before the deadline using the expected RFQ version |
 | `POST /api/v1/rfqs/{id}/clarifications` | `sourcing.clarifications.write` | Create a shared or invitation-private question before the deadline |
 | `POST /api/v1/rfqs/{id}/clarifications/{clarification_id}/answer` | `sourcing.clarifications.write` | Answer an open clarification and preserve its visibility |
@@ -174,11 +174,14 @@ offer ineligible; mandatory unknown or not-applicable outcomes block it. Only el
 receive scores. Landed cost is the exact decimal sum of line quantity × unit price, tax, and
 freight. Price and preferred-requirement weights must total exactly one. The source versions,
 quote digests, matrix, arithmetic results, scoring policy, and SHA-256 digest are stored as an
-immutable evaluation version.
+immutable evaluation version. A check may cite reviewed evidence anchors, but every citation must
+resolve through the assessed quote's immutable document attachment to a verified field in a
+completed extraction. Responses include those anchor IDs and a deterministic summary of counts,
+the leading eligible submission, and the cited evidence set.
 
-Requirement outcomes and rationales are currently controlled reviewer inputs. They are not yet
-linked to document evidence anchors; evidence-backed checks and grounded summaries remain a
-follow-on P5 slice.
+Requirement outcomes and rationales remain controlled reviewer inputs. Model-backed narrative
+generation, formal waivers, independent-review disagreement handling, and production graph
+worker/checkpoint integration remain follow-on P5 work.
 
 ## Events
 

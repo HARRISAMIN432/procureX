@@ -327,6 +327,33 @@ class QuoteLine(UUIDPrimaryKeyMixin, Base):
     description: Mapped[str | None] = mapped_column(String(500))
 
 
+class QuoteSubmissionDocument(UUIDPrimaryKeyMixin, Base):
+    __tablename__ = "quote_submission_documents"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "rfq_id", "submission_id"],
+            [
+                "quote_submissions.organization_id",
+                "quote_submissions.rfq_id",
+                "quote_submissions.id",
+            ],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "document_version_id"],
+            ["document_versions.organization_id", "document_versions.id"],
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint("organization_id", "submission_id", "document_version_id"),
+        UniqueConstraint("organization_id", "id"),
+    )
+
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    rfq_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    submission_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+
+
 class RfqClarification(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "rfq_clarifications"
     __table_args__ = (

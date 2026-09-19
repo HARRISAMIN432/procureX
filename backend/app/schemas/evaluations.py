@@ -22,6 +22,7 @@ class RequirementAssessmentWrite(BaseModel):
     requirement_id: UUID
     outcome: RequirementOutcome
     rationale: str = Field(min_length=2, max_length=5000)
+    evidence_anchor_ids: list[UUID] = Field(default_factory=list, max_length=50)
 
     @field_validator("rationale")
     @classmethod
@@ -30,6 +31,12 @@ class RequirementAssessmentWrite(BaseModel):
         if len(value) < 2:
             raise ValueError("Rationale must contain at least 2 characters")
         return value
+
+    @model_validator(mode="after")
+    def unique_evidence(self) -> "RequirementAssessmentWrite":
+        if len(self.evidence_anchor_ids) != len(set(self.evidence_anchor_ids)):
+            raise ValueError("Each evidence anchor may be cited only once per check")
+        return self
 
 
 class OfferAssessmentWrite(BaseModel):
@@ -65,6 +72,7 @@ class RequirementCheckRead(BaseModel):
     outcome: RequirementOutcome
     is_mandatory: bool
     rationale: str
+    evidence_anchor_ids: list[UUID]
 
 
 class OfferEvaluationRead(BaseModel):
@@ -88,5 +96,6 @@ class EvaluationRead(BaseModel):
     status: EvaluationStatus
     scoring_policy: ScoringPolicy
     content_digest: str
+    summary: dict[str, object]
     created_at: datetime
     offers: list[OfferEvaluationRead]

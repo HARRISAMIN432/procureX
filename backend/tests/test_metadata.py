@@ -25,6 +25,7 @@ EXPECTED_TABLES = {
     "evaluations",
     "offer_evaluations",
     "requirement_checks",
+    "requirement_check_evidence",
     "analysis_runs",
     "model_invocations",
     "jobs",
@@ -50,6 +51,7 @@ EXPECTED_TABLES = {
     "rfq_revisions",
     "rfq_invitations",
     "quote_submissions",
+    "quote_submission_documents",
     "quote_lines",
     "rfq_clarifications",
 }

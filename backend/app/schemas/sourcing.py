@@ -158,6 +158,7 @@ class SubmissionCreate(BaseModel):
     delivery_terms: str = Field(min_length=2, max_length=5000)
     payment_terms: str | None = Field(default=None, max_length=5000)
     notes: str | None = Field(default=None, max_length=10000)
+    document_version_ids: list[UUID] = Field(default_factory=list, max_length=20)
     lines: list[SubmissionLineWrite] = Field(min_length=1, max_length=500)
 
     _delivery_terms = field_validator("delivery_terms")(required_text)
@@ -167,6 +168,8 @@ class SubmissionCreate(BaseModel):
         item_ids = [line.rfq_item_id for line in self.lines]
         if len(item_ids) != len(set(item_ids)):
             raise ValueError("Each RFQ item may appear only once")
+        if len(self.document_version_ids) != len(set(self.document_version_ids)):
+            raise ValueError("Each document version may be attached only once")
         return self
 
 
@@ -204,6 +207,7 @@ class SubmissionRead(BaseModel):
     content_digest: str
     submitted_at: datetime
     withdrawn_at: datetime | None
+    document_version_ids: list[UUID]
     lines: list[SubmissionLineRead]
 
 

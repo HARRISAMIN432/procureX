@@ -47,3 +47,14 @@ def test_evaluation_rejects_duplicate_submissions() -> None:
             scoring_policy=ScoringPolicy(price_weight="1", preferred_weight="0"),
             offers=[offer, offer],
         )
+
+
+def test_assessment_rejects_duplicate_evidence_anchors() -> None:
+    anchor_id = uuid.uuid4()
+    with pytest.raises(ValidationError, match="evidence anchor"):
+        RequirementAssessmentWrite(
+            requirement_id=uuid.uuid4(),
+            outcome=RequirementOutcome.PASS,
+            rationale="confirmed",
+            evidence_anchor_ids=[anchor_id, anchor_id],
+        )

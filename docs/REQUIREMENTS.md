@@ -47,13 +47,16 @@ interrupt/resume contract that rejects stale source digests. LangChain/model wor
 durable PostgreSQL graph invocation/checkpoint integration, automated arithmetic validation, the
 evidence-viewer UI, and authorized document delivery remain incomplete.
 
-The initial P5/EVAL slice now implements complete requirement matrices over closed RFQs and current
-submitted quote versions, four-state requirement outcomes, mandatory-unknown blocking, exact
-decimal landed cost, deterministic weighted comparison, immutable versioned snapshots/digests,
-tenant constraints, permissions, and audit/outbox records. The matrix currently accepts controlled
-reviewer outcomes and rationales. Direct links from checks to reviewed extraction evidence,
-formal waiver workflow, risk signals, grounded narrative summaries, allocation optimization, and
-award integration remain incomplete.
+The P5/EVAL work now implements complete requirement matrices over closed RFQs and current submitted
+quote versions, four-state requirement outcomes, mandatory-unknown blocking, exact decimal landed
+cost, deterministic weighted comparison and summaries, immutable versioned snapshots/digests,
+tenant constraints, permissions, and audit/outbox records. Quote versions retain immutable
+document-version attachments; a check citation is accepted only when it resolves to a verified
+field in a completed extraction of an attached document. A tested `evaluation_graph` contract
+validates the evidence gate, interrupts on unresolved findings, and rejects stale-digest resumes.
+Formal waiver and independent-review workflows, risk signals, model-backed grounded narratives,
+production checkpoint/worker integration, allocation optimization, and award integration remain
+incomplete.
 
 The current backend foundation must provide:
 

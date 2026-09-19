@@ -66,6 +66,25 @@ def test_submission_rejects_duplicate_rfq_items() -> None:
         )
 
 
+def test_submission_rejects_duplicate_document_versions() -> None:
+    document_version_id = uuid4()
+    with pytest.raises(ValidationError, match="document version"):
+        SubmissionCreate(
+            rfq_revision_id=uuid4(),
+            currency="PKR",
+            valid_until=date.today() + timedelta(days=30),
+            delivery_terms="Delivery within fourteen days",
+            document_version_ids=[document_version_id, document_version_id],
+            lines=[
+                {
+                    "rfq_item_id": uuid4(),
+                    "quantity": Decimal("10"),
+                    "unit_price": Decimal("100.00"),
+                }
+            ],
+        )
+
+
 def test_private_clarification_requires_invitation() -> None:
     with pytest.raises(ValidationError, match="require invitation_id"):
         ClarificationCreate(
