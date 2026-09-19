@@ -122,6 +122,23 @@ class InvitationRead(BaseModel):
     status: InvitationStatus
     invited_at: datetime | None
     responded_at: datetime | None
+    response_reason: str | None
+
+
+class InvitationAcknowledge(BaseModel):
+    expected_rfq_version: int = Field(gt=0)
+
+
+class InvitationNoBid(InvitationAcknowledge):
+    reason: str = Field(min_length=2, max_length=2000)
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_reason(cls, value: str) -> str:
+        stripped = required_text(value)
+        if len(stripped) < 2:
+            raise ValueError("Reason must contain at least 2 characters")
+        return stripped
 
 
 class SubmissionLineWrite(BaseModel):
@@ -135,6 +152,7 @@ class SubmissionLineWrite(BaseModel):
 
 
 class SubmissionCreate(BaseModel):
+    rfq_revision_id: UUID
     currency: str = Field(pattern=r"^[A-Z]{3}$")
     valid_until: date
     delivery_terms: str = Field(min_length=2, max_length=5000)

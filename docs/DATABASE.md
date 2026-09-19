@@ -38,7 +38,9 @@ An RFQ is created from one approved requisition and copies its lines and require
 sourcing boundary. Publication and every amendment create an immutable JSON snapshot with a
 SHA-256 digest. Invitations point to the current published revision; each immutable quote version
 retains the exact revision it answered. Quote lines use composite tenant/parent foreign keys so a
-line cannot reference another RFQ's item or submission.
+line cannot reference another RFQ's item or submission. Invitation rows retain acknowledgement or
+no-bid response time and the supplier's no-bid reason; response commands also increment the RFQ
+aggregate version so concurrent actions cannot silently overwrite one another.
 
 ## Tenant isolation
 

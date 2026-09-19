@@ -28,8 +28,9 @@ enforcement remain later work. Live PostgreSQL migration and concurrency/cross-t
 tests remain pending until a database service is available. The initial RFQ-01 through RFQ-04 and
 RFQ-06 sourcing slice now covers versioned publication/amendment, approved-supplier invitations,
 deadline-controlled immutable quote versions, cancellation/closure, and clarification records.
-Direct supplier authentication, acknowledgements/no-bid, attachment intake, notification delivery,
-and full portal isolation remain incomplete.
+Invitation acknowledgement and no-bid transitions are now implemented in the controlled intake
+API with RFQ version/deadline checks and a retained decline reason. Direct supplier authentication,
+attachment intake, notification delivery, and full portal isolation remain incomplete.
 
 The current backend foundation must provide:
 

@@ -52,8 +52,11 @@ The implemented sourcing workflow creates an RFQ only from an approved requisiti
 controlled lines and requirements. Only approved suppliers can be selected. Publication requires
 at least one invitation, creates an immutable digest-bearing revision, and moves the requisition to
 `sourcing`. Amendments create new publication revisions; existing quote versions continue to point
-to the revision they answered. The server rejects post-deadline quotes and premature closure.
-Shared and private clarification visibility is persisted for later supplier-portal enforcement.
+to the revision they answered, while a new quote is rejected if its explicit revision is stale.
+The server rejects post-deadline quotes and premature closure.
+Invitations can be acknowledged or declined with a retained no-bid reason before the deadline;
+both transitions bind to an expected RFQ version and emit audit/outbox evidence. Shared and private
+clarification visibility is persisted for later supplier-portal enforcement.
 
 ## Required recovery behavior
 

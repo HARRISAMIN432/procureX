@@ -32,7 +32,9 @@ from app.schemas.sourcing import (
     ClarificationAnswer,
     ClarificationCreate,
     ClarificationRead,
+    InvitationAcknowledge,
     InvitationCreate,
+    InvitationNoBid,
     InvitationRead,
     RfqAmend,
     RfqCancel,
@@ -281,6 +283,112 @@ async def invite_suppliers(
     return await read_rfq(context, rfq.id)
 
 
+async def _locked_invitation_and_rfq(
+    context: RequestContext, invitation_id: uuid.UUID, expected_rfq_version: int
+) -> tuple[RfqInvitation, Rfq]:
+    candidate = await context.session.scalar(
+        select(RfqInvitation).where(
+            RfqInvitation.organization_id == context.organization_id,
+            RfqInvitation.id == invitation_id,
+        )
+    )
+    if candidate is None:
+        raise SourcingNotFoundError("Invitation not found")
+    rfq = await _locked_rfq(context, candidate.rfq_id)
+    _check_version(rfq, expected_rfq_version)
+    invitation = await context.session.scalar(
+        select(RfqInvitation)
+        .where(
+            RfqInvitation.organization_id == context.organization_id,
+            RfqInvitation.rfq_id == rfq.id,
+            RfqInvitation.id == invitation_id,
+        )
+        .with_for_update()
+    )
+    if invitation is None:
+        raise SourcingNotFoundError("Invitation not found")
+    return invitation, rfq
+
+
+def _require_open_invitation_response(rfq: Rfq) -> datetime:
+    if rfq.status is not RfqStatus.PUBLISHED:
+        raise SourcingConflictError("The RFQ is not accepting invitation responses")
+    now = datetime.now(UTC)
+    if now > rfq.submission_deadline.astimezone(UTC):
+        raise SourcingValidationError("The submission deadline has passed")
+    return now
+
+
+def _require_current_revision(
+    invitation: RfqInvitation, submitted_revision_id: uuid.UUID
+) -> None:
+    if invitation.rfq_revision_id is None:
+        raise SourcingConflictError("Invitation has no published RFQ revision")
+    if submitted_revision_id != invitation.rfq_revision_id:
+        raise SourcingConflictError("The RFQ was amended; submit against the current revision")
+
+
+async def acknowledge_invitation(
+    context: RequestContext,
+    invitation_id: uuid.UUID,
+    payload: InvitationAcknowledge,
+) -> InvitationRead:
+    invitation, rfq = await _locked_invitation_and_rfq(
+        context, invitation_id, payload.expected_rfq_version
+    )
+    now = _require_open_invitation_response(rfq)
+    if invitation.status is not InvitationStatus.INVITED:
+        raise SourcingConflictError(
+            f"Only an invited supplier can acknowledge; invitation is {invitation.status.value}"
+        )
+    invitation.status = InvitationStatus.ACKNOWLEDGED
+    invitation.responded_at = now
+    invitation.response_reason = None
+    rfq.version += 1
+    _record_change(
+        context,
+        rfq,
+        "rfq.invitation_acknowledged",
+        {
+            "invitation_id": str(invitation.id),
+            "supplier_id": str(invitation.supplier_id),
+        },
+    )
+    await context.session.flush()
+    return InvitationRead.model_validate(invitation)
+
+
+async def decline_invitation(
+    context: RequestContext,
+    invitation_id: uuid.UUID,
+    payload: InvitationNoBid,
+) -> InvitationRead:
+    invitation, rfq = await _locked_invitation_and_rfq(
+        context, invitation_id, payload.expected_rfq_version
+    )
+    now = _require_open_invitation_response(rfq)
+    if invitation.status not in {InvitationStatus.INVITED, InvitationStatus.ACKNOWLEDGED}:
+        raise SourcingConflictError(
+            f"Invitation in {invitation.status.value} state cannot be declined"
+        )
+    invitation.status = InvitationStatus.NO_BID
+    invitation.responded_at = now
+    invitation.response_reason = payload.reason
+    rfq.version += 1
+    _record_change(
+        context,
+        rfq,
+        "rfq.invitation_declined",
+        {
+            "invitation_id": str(invitation.id),
+            "supplier_id": str(invitation.supplier_id),
+            "reason": payload.reason,
+        },
+    )
+    await context.session.flush()
+    return InvitationRead.model_validate(invitation)
+
+
 async def _publication_snapshot(context: RequestContext, rfq: Rfq) -> RfqRevision:
     view = await read_rfq(context, rfq.id)
     snapshot = view.model_dump(
@@ -429,8 +537,7 @@ async def submit_quote(
         raise SourcingValidationError("The submission deadline has passed")
     if invitation.status in {InvitationStatus.NO_BID, InvitationStatus.REVOKED}:
         raise SourcingConflictError(f"Invitation is {invitation.status.value}")
-    if invitation.rfq_revision_id is None:
-        raise SourcingConflictError("Invitation has no published RFQ revision")
+    _require_current_revision(invitation, payload.rfq_revision_id)
     supplier_status = await context.session.scalar(
         select(Supplier.status).where(
             Supplier.organization_id == context.organization_id,
@@ -488,7 +595,7 @@ async def submit_quote(
         rfq_id=rfq.id,
         invitation_id=invitation.id,
         supplier_id=invitation.supplier_id,
-        rfq_revision_id=invitation.rfq_revision_id,
+        rfq_revision_id=payload.rfq_revision_id,
         version=version,
         currency=payload.currency,
         valid_until=payload.valid_until,

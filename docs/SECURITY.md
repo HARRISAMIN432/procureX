@@ -48,6 +48,8 @@ controls.
 
 RFQ publications and quote payloads are immutable digest-bearing snapshots. Tenant-qualified
 foreign keys prevent cross-organization and cross-RFQ references, and the server clock controls
-submission timeliness. The current quote endpoint requires an internal buyer-side intake
-permission; it must not be exposed as supplier self-service until supplier principals, invitation
+submission timeliness. A quote must name the invitation's current RFQ revision, preventing an
+amendment from silently rebinding an in-flight submission. The current quote endpoint requires an
+internal buyer-side intake permission; it must not be exposed as supplier self-service until
+supplier principals, invitation
 credentials, object authorization, rate limits, and competitor-data response filtering are added.

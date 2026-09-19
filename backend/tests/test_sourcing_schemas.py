@@ -9,6 +9,7 @@ from app.models.sourcing import ClarificationVisibility
 from app.schemas.sourcing import (
     ClarificationCreate,
     InvitationCreate,
+    InvitationNoBid,
     RfqCreate,
     SubmissionCreate,
 )
@@ -38,6 +39,16 @@ def test_invitation_rejects_duplicate_suppliers() -> None:
         InvitationCreate(supplier_ids=[supplier_id, supplier_id])
 
 
+def test_no_bid_requires_a_meaningful_reason() -> None:
+    with pytest.raises(ValidationError, match="at least 2 characters"):
+        InvitationNoBid(expected_rfq_version=2, reason=" x ")
+
+
+def test_no_bid_normalizes_reason() -> None:
+    payload = InvitationNoBid(expected_rfq_version=2, reason="  Capacity unavailable  ")
+    assert payload.reason == "Capacity unavailable"
+
+
 def test_submission_rejects_duplicate_rfq_items() -> None:
     item_id = uuid4()
     line = {
@@ -47,6 +58,7 @@ def test_submission_rejects_duplicate_rfq_items() -> None:
     }
     with pytest.raises(ValidationError, match="only once"):
         SubmissionCreate(
+            rfq_revision_id=uuid4(),
             currency="PKR",
             valid_until=date.today() + timedelta(days=30),
             delivery_terms="Delivery within fourteen days",

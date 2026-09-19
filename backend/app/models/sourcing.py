@@ -235,6 +235,7 @@ class RfqInvitation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     invited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    response_reason: Mapped[str | None] = mapped_column(Text)
 
 
 class QuoteSubmission(UUIDPrimaryKeyMixin, Base):

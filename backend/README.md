@@ -66,5 +66,6 @@ are available under `/api/v1/suppliers`. The endpoint and permission matrix is d
 
 The first sourcing slice is available under `/api/v1/rfqs` and
 `/api/v1/rfq-invitations`: versioned publication/amendment, approved-supplier invitations,
-deadline-controlled immutable quote versions, and clarifications. See
+deadline-controlled immutable quote versions, acknowledgement/no-bid responses, stale-revision
+rejection, and clarifications. See
 [`../docs/API.md`](../docs/API.md#implemented-sourcing-endpoints).

@@ -9,7 +9,10 @@ from app.schemas.sourcing import (
     ClarificationAnswer,
     ClarificationCreate,
     ClarificationRead,
+    InvitationAcknowledge,
     InvitationCreate,
+    InvitationNoBid,
+    InvitationRead,
     RfqAmend,
     RfqCancel,
     RfqCreate,
@@ -25,12 +28,14 @@ from app.services.sourcing import (
     SourcingConflictError,
     SourcingNotFoundError,
     SourcingValidationError,
+    acknowledge_invitation,
     amend_rfq,
     answer_clarification,
     cancel_rfq,
     close_rfq,
     create_clarification,
     create_rfq,
+    decline_invitation,
     invite_suppliers,
     list_rfqs,
     publish_rfq,
@@ -104,6 +109,24 @@ async def invite(
     context: Annotated[RequestContext, Depends(require_permission("sourcing.invite"))],
 ) -> RfqRead:
     return await execute(lambda: invite_suppliers(context, rfq_id, payload))
+
+
+@router.post("/rfq-invitations/{invitation_id}/acknowledge", response_model=InvitationRead)
+async def acknowledge(
+    invitation_id: UUID,
+    payload: InvitationAcknowledge,
+    context: Annotated[RequestContext, Depends(require_permission("sourcing.submissions.manage"))],
+) -> InvitationRead:
+    return await execute(lambda: acknowledge_invitation(context, invitation_id, payload))
+
+
+@router.post("/rfq-invitations/{invitation_id}/no-bid", response_model=InvitationRead)
+async def no_bid(
+    invitation_id: UUID,
+    payload: InvitationNoBid,
+    context: Annotated[RequestContext, Depends(require_permission("sourcing.submissions.manage"))],
+) -> InvitationRead:
+    return await execute(lambda: decline_invitation(context, invitation_id, payload))
 
 
 @router.post("/rfqs/{rfq_id}/publish", response_model=RfqRead)
