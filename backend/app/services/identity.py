@@ -64,6 +64,8 @@ PERMISSION_CATALOG: dict[str, str] = {
     "sourcing.publish": "Publish, amend, close, or cancel RFQs",
     "sourcing.submissions.manage": "Record supplier quotation submissions",
     "sourcing.clarifications.write": "Create and answer RFQ clarifications",
+    "evaluations.read": "View requirement matrices and evaluated offer comparisons",
+    "evaluations.run": "Create deterministic offer evaluation snapshots",
 }
 
 

@@ -84,3 +84,9 @@ anchors. Human reviewers verify/correct/reject fields under optimistic revisions
 must be verified before finalization. The tested `document_analysis_graph` contract pauses for
 review and rejects stale source-digest resumes. Model execution and production checkpoint wiring
 remain integration work.
+
+The first P5 evaluation slice is available through `/api/v1/rfqs/{id}/evaluations` and
+`/api/v1/evaluations/{id}`. It builds a complete four-state requirement matrix, blocks unresolved
+mandatory criteria, calculates exact landed costs and deterministic weighted scores, and preserves
+each comparison as an immutable digest-bearing version. Requirement outcomes are reviewer inputs;
+document-evidence linkage and grounded summaries remain follow-on P5 work.

@@ -30,6 +30,7 @@
 | Invitation | Invited → Acknowledged/Submitted/No bid/Revoked |
 | Quote version | Submitted → Withdrawn |
 | Clarification | Open → Answered |
+| Evaluation | Completed immutable version; reruns create a new version |
 
 Failure, cancellation, retry, rejected, stale, and superseded states are explicit. Every transition
 defines actor, preconditions, expected version, atomic writes, audit event, and notifications.
@@ -79,6 +80,15 @@ missing values cannot claim evidence. Reviewers verify, correct, or reject field
 extraction revisions, and every action appends its previous/new value and reason. Finalization is
 blocked while any field is unresolved or any critical field is not verified. Successful
 finalization completes the analysis run and moves the document version to `reviewed`.
+
+The initial P5 evaluation workflow locks a closed RFQ, checks its expected version, includes every
+current submitted quote version in the RFQ currency, and requires a complete requirement matrix
+for each offer. Mandatory failure makes an offer ineligible, while unresolved or not-applicable
+mandatory criteria block scoring. Exact decimal landed cost and a declared price/preferred
+weighting produce scores only for eligible offers. The service persists the normalized comparison
+and digest as a new immutable version and emits audit/outbox evidence. The present check outcomes
+are entered by an authorized reviewer; linking them to extracted evidence and generating grounded
+summaries are still required before the broader P5 workflow is complete.
 
 ## Required recovery behavior
 

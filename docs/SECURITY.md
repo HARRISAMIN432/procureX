@@ -74,3 +74,11 @@ amendment from silently rebinding an in-flight submission. The current quote end
 internal buyer-side intake permission; it must not be exposed as supplier self-service until
 supplier principals, invitation credentials, object authorization, rate limits, and
 competitor-data response filtering are added.
+
+Evaluation creation and reading use separate `evaluations.run` and `evaluations.read` permissions.
+Runs are restricted to closed RFQs, tenant-owned current submissions, a complete controlled
+requirement matrix, and explicit scoring weights. Mandatory unknown/not-applicable outcomes fail
+closed by blocking eligibility; mandatory failures cannot be scored. The immutable snapshot binds
+source versions and quote digests and emits audit/outbox records. Reviewer rationales are retained,
+but the current API does not prove them from document anchors; consumers must not present these
+checks as evidence-grounded until that P5 linkage is implemented.

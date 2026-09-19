@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.routes import (
     approvals,
     documents,
+    evaluations,
     extractions,
     organizations,
     requisitions,
@@ -18,3 +19,4 @@ api_router.include_router(suppliers.router)
 api_router.include_router(sourcing.router)
 api_router.include_router(documents.router)
 api_router.include_router(extractions.router)
+api_router.include_router(evaluations.router)

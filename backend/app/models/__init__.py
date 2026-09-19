@@ -15,6 +15,7 @@ from app.models.documents import (
     DocumentScan,
     DocumentVersion,
 )
+from app.models.evaluations import Evaluation, OfferEvaluation, RequirementCheck
 from app.models.extractions import EvidenceAnchor, ExtractedField, Extraction, FieldReview
 from app.models.identity import (
     Membership,
@@ -66,6 +67,7 @@ __all__ = [
     "DocumentScan",
     "DocumentVersion",
     "EvidenceAnchor",
+    "Evaluation",
     "ExtractedField",
     "Extraction",
     "FieldReview",
@@ -76,6 +78,7 @@ __all__ = [
     "Organization",
     "OrganizationSetting",
     "OutboxEvent",
+    "OfferEvaluation",
     "Permission",
     "Role",
     "RolePermission",
@@ -96,4 +99,5 @@ __all__ = [
     "RequisitionLine",
     "RequisitionRequirement",
     "RequisitionRevision",
+    "RequirementCheck",
 ]

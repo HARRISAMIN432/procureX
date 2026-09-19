@@ -161,6 +161,25 @@ updates. Corrections preserve prior status/value and reviewer/reason. Finalizati
 document version to `reviewed` and completes the bound analysis run. LangChain/model execution,
 production PostgreSQL checkpoint wiring, and an extraction worker remain P4 integration work.
 
+## Implemented evaluation endpoints
+
+| Endpoint | Permission | Behavior |
+|---|---|---|
+| `POST /api/v1/rfqs/{id}/evaluations` | `evaluations.run` | Validate a complete requirement matrix and create an immutable deterministic comparison snapshot |
+| `GET /api/v1/evaluations/{id}` | `evaluations.read` | Return evaluated offers, requirement outcomes, eligibility, landed costs, and scores |
+
+Evaluation requires every current submitted quote version and exactly one
+`pass`/`fail`/`unknown`/`not_applicable` outcome per RFQ requirement. Mandatory failures make an
+offer ineligible; mandatory unknown or not-applicable outcomes block it. Only eligible offers
+receive scores. Landed cost is the exact decimal sum of line quantity × unit price, tax, and
+freight. Price and preferred-requirement weights must total exactly one. The source versions,
+quote digests, matrix, arithmetic results, scoring policy, and SHA-256 digest are stored as an
+immutable evaluation version.
+
+Requirement outcomes and rationales are currently controlled reviewer inputs. They are not yet
+linked to document evidence anchors; evidence-backed checks and grounded summaries remain a
+follow-on P5 slice.
+
 ## Events
 
 Business state and an `outbox_events` row are committed in one transaction. Consumers assume

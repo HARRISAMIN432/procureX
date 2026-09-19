@@ -21,8 +21,9 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 | Budgets | `budgets`, `budget_ledger_entries`, `budget_reservations` |
 | Suppliers | `suppliers`, `supplier_contacts`, `supplier_qualifications`, `supplier_certificates` |
 | Sourcing | `rfqs`, `rfq_items`, `rfq_requirements`, `rfq_revisions`, `rfq_invitations`, `quote_submissions`, `quote_lines`, `rfq_clarifications` |
+| Evaluation | `evaluations`, `offer_evaluations`, `requirement_checks` |
 
-Later migrations add evaluation, order, and finance aggregates
+Later migrations add optimization, order, and finance aggregates
 described in [DOMAIN.md](DOMAIN.md).
 
 Budget balances are derived from an append-only four-bucket ledger: available, reserved,
@@ -41,6 +42,13 @@ retains the exact revision it answered. Quote lines use composite tenant/parent 
 line cannot reference another RFQ's item or submission. Invitation rows retain acknowledgement or
 no-bid response time and the supplier's no-bid reason; response commands also increment the RFQ
 aggregate version so concurrent actions cannot silently overwrite one another.
+
+An `evaluation` is an immutable, monotonically versioned comparison of a closed RFQ. Its canonical
+snapshot binds the RFQ/publication version, scoring weights, current quote IDs and digests,
+requirement matrix, exact landed costs, eligibility, and scores under one SHA-256 digest.
+`offer_evaluations` retain calculated offer results; `requirement_checks` preserve every outcome,
+mandatory flag, and reviewer rationale. Tenant-qualified foreign keys prevent an evaluation from
+mixing RFQs, submissions, suppliers, or requirements across ownership boundaries.
 
 ## Tenant isolation
 

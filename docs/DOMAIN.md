@@ -49,3 +49,17 @@ Extraction attempts bind to one immutable completed parse and schema version. A 
 only propose field states; it cannot create verified values. Every present value cites a page, and
 review actions preserve before/after values and reasons. An extraction is decision-eligible only
 after every critical field is verified and every other field is verified or explicitly rejected.
+
+## Evaluation rule
+
+Evaluation runs only against a closed RFQ and includes every current submitted quote version in
+the RFQ currency. Every offer must resolve the complete controlled requirement set. A mandatory `fail`
+makes the offer ineligible; a mandatory `unknown` or `not_applicable` blocks it; only all-passing
+mandatory checks are eligible. Preferred `not_applicable` checks are excluded from the preferred
+ratio. Eligible offers are scored deterministically from exact landed cost and that ratio using
+weights that total one; blocked and ineligible offers never receive a score.
+
+Each run creates a new immutable version and digest rather than replacing an earlier comparison.
+The current matrix is reviewer-supplied and rationale-bearing. Requirement-to-document evidence
+links, formal waivers, risk signals, grounded summaries, and allocation optimization remain later
+capabilities.
