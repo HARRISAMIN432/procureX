@@ -78,3 +78,9 @@ idempotent scan dispatch, and scan-gated parsing/rejection. See the
 Clean scans now enqueue an idempotent parse job. Native/OCR/hybrid workers can record digest-bound,
 replay-safe attempts with ordered page text and tables; a successful attempt advances the immutable
 document version to `parsed`. Parser execution and structured extraction remain subsequent P4 work.
+
+Structured extraction results can now be recorded against completed parses with page-level evidence
+anchors. Human reviewers verify/correct/reject fields under optimistic revisions; critical fields
+must be verified before finalization. The tested `document_analysis_graph` contract pauses for
+review and rejects stale source-digest resumes. Model execution and production checkpoint wiring
+remain integration work.

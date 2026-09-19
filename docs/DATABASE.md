@@ -13,7 +13,7 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 |---|---|
 | Identity | `organizations`, `users`, `memberships`, `roles`, `permissions`, `role_permissions`, `membership_roles` |
 | Configuration | `organization_settings` |
-| Documents | `documents`, `document_versions`, `cloudinary_assets`, `document_scans`, `document_parses`, `document_pages` |
+| Documents | `documents`, `document_versions`, `cloudinary_assets`, `document_scans`, `document_parses`, `document_pages`, `extractions`, `extracted_fields`, `evidence_anchors`, `field_reviews` |
 | AI execution | `analysis_runs`, `model_invocations` |
 | Platform | `jobs`, `outbox_events`, `audit_events` |
 | Requisitions | `requisitions`, `requisition_lines`, `requisition_requirements`, `requisition_revisions` |
@@ -80,3 +80,11 @@ digest. Page rows retain source label, text, dimensions, OCR confidence, and str
 Composite foreign keys prevent pages from being attached to a parse from another tenant or
 document version. Failed attempts remain evidence and permit a later attempt; only a completed
 attempt moves the document version from `parsing` to `parsed`.
+
+`extractions` binds a schema/version and canonical content digest to one completed parse digest and
+one `analysis_runs` record. `extracted_fields` distinguishes proposed, missing, ambiguous,
+conflicting, verified, and rejected states. `evidence_anchors` uses tenant-qualified composite keys
+to ensure each field cites a page from the same document version and parse. `field_reviews` is an
+append-only correction/decision history containing previous and reviewed values, actor, reason,
+and time. The mutable extraction header has an optimistic review revision; completed extraction
+fields and review history are not overwritten.

@@ -15,6 +15,7 @@ from app.models.documents import (
     DocumentScan,
     DocumentVersion,
 )
+from app.models.extractions import EvidenceAnchor, ExtractedField, Extraction, FieldReview
 from app.models.identity import (
     Membership,
     MembershipRole,
@@ -64,6 +65,10 @@ __all__ = [
     "DocumentParse",
     "DocumentScan",
     "DocumentVersion",
+    "EvidenceAnchor",
+    "ExtractedField",
+    "Extraction",
+    "FieldReview",
     "Job",
     "Membership",
     "MembershipRole",

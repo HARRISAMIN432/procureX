@@ -73,6 +73,13 @@ and leave the version in `parsing` for recovery. A completed attempt must contai
 numbers and persists source labels, text, dimensions, OCR confidence, and tables before moving the
 version to `parsed`. Extraction may consume only a completed parse of that version.
 
+A structured extraction result binds to the completed parse digest and enters `awaiting_review`;
+the document version becomes `extracted`. Non-missing values require same-parse page anchors, while
+missing values cannot claim evidence. Reviewers verify, correct, or reject fields using optimistic
+extraction revisions, and every action appends its previous/new value and reason. Finalization is
+blocked while any field is unresolved or any critical field is not verified. Successful
+finalization completes the analysis run and moves the document version to `reviewed`.
+
 ## Required recovery behavior
 
 - Worker replay cannot duplicate finalized records or external actions.

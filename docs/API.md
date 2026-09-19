@@ -142,8 +142,24 @@ parse job. Parser results use a stable `result_key`: replaying the same content 
 result, while reusing the key with changed content is a conflict. Successful native, OCR, or hybrid
 results require consecutive pages and advance the version to `parsed`; failed attempts remain
 immutable while the version stays recoverable in `parsing`. The scan and parser worker/provider
-integrations, server-side byte/hash reconciliation, extraction, review, and authorized download
-URLs remain P4 work.
+integrations, server-side byte/hash reconciliation, model-driven extraction, and authorized
+download URLs remain P4 work.
+
+## Implemented extraction and review endpoints
+
+| Endpoint | Permission | Behavior |
+|---|---|---|
+| `POST /api/v1/document-versions/{id}/extractions` | `documents.process` | Idempotently record schema-validated proposed fields bound to a completed parse and evidence pages |
+| `GET /api/v1/extractions/{id}` | `documents.read` | Return fields, evidence anchors, review history, digests, and workflow state |
+| `POST /api/v1/extractions/{id}/fields/{field_id}/review` | `documents.review` | Verify, correct, or reject one field using the expected extraction revision |
+| `POST /api/v1/extractions/{id}/finalize` | `documents.review` | Complete review only when every critical field is verified and all fields are resolved |
+
+Extraction output can propose `proposed`, `missing`, `ambiguous`, or `conflicting`; it cannot mark
+itself verified. Every non-missing value requires an anchor to a page from the bound parse. Result
+keys and canonical digests make worker replay idempotent, and optimistic revisions protect review
+updates. Corrections preserve prior status/value and reviewer/reason. Finalization moves the
+document version to `reviewed` and completes the bound analysis run. LangChain/model execution,
+production PostgreSQL checkpoint wiring, and an extraction worker remain P4 integration work.
 
 ## Events
 

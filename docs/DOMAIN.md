@@ -44,3 +44,8 @@ Parser/OCR attempts are immutable children of a document version. Each attempt i
 and owns ordered page/source records; retries create a new attempt unless they replay the same
 result key and identical content. Parsed pages are evidence sources, not verified commercial
 facts—structured fields and human review remain separate downstream records.
+
+Extraction attempts bind to one immutable completed parse and schema version. A model or worker may
+only propose field states; it cannot create verified values. Every present value cites a page, and
+review actions preserve before/after values and reasons. An extraction is decision-eligible only
+after every critical field is verified and every other field is verified or explicitly rejected.

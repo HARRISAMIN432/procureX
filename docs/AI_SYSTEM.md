@@ -17,11 +17,13 @@ authorize source → load parse/OCR result → extract typed fields
 → finalize extraction version
 ```
 
-The graph is not started by upload. It may consume a document version only after the intake and
-malware-scan workflow has moved that immutable version to `parsing`. The signed-upload/quarantine
-and immutable parser-result contracts are implemented; successful results move the version to
-`parsed`. Parser/OCR execution nodes, extraction schemas, evidence validation, checkpoints, and
-human-review interrupts remain pending.
+The graph is not started by upload. It may consume a document version only after a successful
+parser result has moved that immutable version to `parsed`. The signed-upload/quarantine and
+immutable parser-result contracts are implemented. Schema-validated extraction persistence,
+same-parse evidence anchors, and the
+`document_analysis_graph` human-review interrupt/resume state contract are implemented. The graph
+rejects a resume whose source digest changed. Parser/OCR/model execution nodes, deterministic
+commercial arithmetic, and production PostgreSQL checkpoint invocation remain pending.
 
 ### `evaluation_graph`
 

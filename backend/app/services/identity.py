@@ -39,6 +39,7 @@ PERMISSION_CATALOG: dict[str, str] = {
     "documents.write": "Upload and manage document versions",
     "documents.scan": "Record trusted malware scan results",
     "documents.process": "Record trusted parser and OCR results",
+    "documents.review": "Review and finalize extracted document fields",
     "analysis.read": "View AI analysis runs and evidence",
     "analysis.run": "Start and resume AI analysis runs",
     "audit.read": "View organization audit events",

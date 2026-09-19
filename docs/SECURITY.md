@@ -33,6 +33,13 @@ is canonically digested with tenant-qualified page ownership. Parsed text and ta
 untrusted supplier content: they do not become verified fields and must never be treated as model
 instructions.
 
+Extraction workers have `documents.process`, while human field decisions require the separate
+`documents.review` permission. Worker output cannot assign verified/rejected states. Present values
+must cite a page owned by the same tenant, document version, and parse; missing values cannot claim
+support. Critical fields block completion unless human-verified, review updates use optimistic
+revisions, and corrections retain before/after values, actor, reason, and time. Graph resume also
+checks the immutable source digest to reject stale review continuation.
+
 ## AI-specific controls
 
 Models have no purchasing authority, unrestricted database access, or arbitrary outbound network

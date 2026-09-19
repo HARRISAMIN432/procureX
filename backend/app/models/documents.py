@@ -242,6 +242,7 @@ class DocumentPage(UUIDPrimaryKeyMixin, Base):
             ondelete="CASCADE",
         ),
         UniqueConstraint("organization_id", "parse_id", "page_number"),
+        UniqueConstraint("organization_id", "document_version_id", "parse_id", "id"),
         UniqueConstraint("organization_id", "id"),
         CheckConstraint("page_number > 0", name="positive_page_number"),
         CheckConstraint("width IS NULL OR width > 0", name="positive_width"),

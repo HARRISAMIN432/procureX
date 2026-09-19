@@ -473,6 +473,20 @@ async def record_parse_result(
                 "page_count": len(payload.pages),
                 "content_digest": digest,
             }
+        context.session.add(
+            Job(
+                organization_id=context.organization_id,
+                job_type="document.extract",
+                status=JobStatus.QUEUED,
+                idempotency_key=f"document-extract:{version.id}:{parse.id}",
+                payload={
+                    "document_id": str(document.id),
+                    "document_version_id": str(version.id),
+                    "parse_id": str(parse.id),
+                    "source_digest": digest,
+                },
+            )
+        )
     else:
         event_action = "document.parse_failed"
         if parse_job is not None:
