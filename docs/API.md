@@ -133,6 +133,7 @@ idempotency-key middleware remain P3 work and must land before external supplier
 | `POST /api/v1/documents/versions/{version_id}/parse-results` | `documents.process` | Idempotently record an immutable native/OCR/hybrid attempt with ordered pages and tables |
 | `GET /api/v1/documents` | `documents.read` | List tenant documents with version, asset, and scan state |
 | `GET /api/v1/documents/{id}` | `documents.read` | Return one tenant document and its immutable version history |
+| `GET /api/v1/documents/versions/{version_id}/download` | `documents.read` | Issue an audited short-lived URL for a tenant-owned clean, verified asset |
 
 The intake API currently supports PDF, XLSX, DOCX, JPEG, and PNG with a configurable byte limit
 (25 MiB by default). Filenames must be basenames, hashes are lowercase SHA-256 declarations, and
@@ -141,9 +142,10 @@ parsers until an authorized clean scan result advances the version to `parsing` 
 parse job. Parser results use a stable `result_key`: replaying the same content returns the existing
 result, while reusing the key with changed content is a conflict. Successful native, OCR, or hybrid
 results require consecutive pages and advance the version to `parsed`; failed attempts remain
-immutable while the version stays recoverable in `parsing`. The scan and parser worker/provider
-integrations, server-side byte/hash reconciliation, model-driven extraction, and authorized
-download URLs remain P4 work.
+immutable while the version stays recoverable in `parsing`. User downloads recheck tenant access
+and safe asset state before issuing a short-lived authenticated URL. The scan and parser
+worker/provider integrations, server-side byte/hash reconciliation, model-driven extraction, and
+parser-worker downloads remain P4 work.
 
 ## Implemented extraction and review endpoints
 

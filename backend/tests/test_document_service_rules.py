@@ -5,12 +5,14 @@ import pytest
 
 from app.auth.context import RequestContext
 from app.core.config import Settings
-from app.models.documents import ParseKind, ParseStatus
+from app.models.documents import AssetStatus, DocumentVersionStatus, ParseKind, ParseStatus
 from app.schemas.documents import DocumentUploadIntentCreate, ParseResultCreate
 from app.services.documents import (
+    DocumentConflictError,
     DocumentValidationError,
     _parse_result_digest,
     create_upload_intent,
+    validate_download_state,
 )
 
 
@@ -46,3 +48,13 @@ def test_parse_result_digest_is_deterministic_and_content_bound() -> None:
 
     assert _parse_result_digest(payload) == _parse_result_digest(same)
     assert _parse_result_digest(payload) != _parse_result_digest(changed)
+
+
+def test_download_requires_clean_verified_asset_state() -> None:
+    validate_download_state(DocumentVersionStatus.PARSED, AssetStatus.VERIFIED)
+    with pytest.raises(DocumentConflictError, match="cannot be downloaded"):
+        validate_download_state(DocumentVersionStatus.SCANNING, AssetStatus.UPLOADED)
+    with pytest.raises(DocumentConflictError, match="deletion_pending"):
+        validate_download_state(
+            DocumentVersionStatus.REVIEWED, AssetStatus.DELETION_PENDING
+        )

@@ -42,6 +42,7 @@ def test_identity_routes_are_in_openapi() -> None:
     )
     assert "/api/v1/documents/versions/{version_id}/scan-results" in schema["paths"]
     assert "/api/v1/documents/versions/{version_id}/parse-results" in schema["paths"]
+    assert "/api/v1/documents/versions/{version_id}/download" in schema["paths"]
     assert "/api/v1/document-versions/{version_id}/extractions" in schema["paths"]
     assert (
         "/api/v1/extractions/{extraction_id}/fields/{field_id}/review" in schema["paths"]

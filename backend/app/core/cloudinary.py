@@ -8,6 +8,7 @@ from cloudinary.utils import (  # type: ignore[import-untyped]
     SIGNATURE_SHA1,
     SIGNATURE_SHA256,
     api_sign_request,
+    private_download_url,
 )
 
 from app.core.config import Settings
@@ -111,3 +112,24 @@ def verify_document_upload_response(
         signature_version=1,
     )
     return secrets.compare_digest(signature, expected)
+
+
+def signed_document_download_url(
+    settings: Settings,
+    *,
+    public_id: str,
+    format: str | None,
+    expires_at: int,
+) -> str:
+    """Create a short-lived URL for an already-authorized authenticated raw asset."""
+    configure_cloudinary(settings)
+    return str(
+        private_download_url(
+            public_id,
+            format or "",
+            resource_type="raw",
+            type="authenticated",
+            attachment=True,
+            expires_at=expires_at,
+        )
+    )

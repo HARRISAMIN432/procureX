@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     cloudinary_folder_prefix: str = "procurex/local"
     document_max_upload_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
     document_upload_intent_ttl_seconds: int = Field(default=10 * 60, ge=60, le=3600)
+    document_download_ttl_seconds: int = Field(default=5 * 60, ge=60, le=900)
 
     rabbitmq_url: SecretStr = SecretStr("amqp://procurex:procurex@localhost:5672//")
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")

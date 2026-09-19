@@ -37,15 +37,16 @@ upload intents, immutable authenticated Cloudinary identities, provider-response
 quarantine state, idempotent scan dispatch, trusted scan-result recording, and tenant document
 reads. The follow-on P4 slice adds idempotent native/OCR/hybrid result ingestion, immutable parser
 attempts, canonical result digests, and ordered page/text/table sources. Actual scanner/parser
-execution, server-side byte/hash verification, model-driven structured extraction, and document
-download authorization remain incomplete.
+execution, server-side byte/hash verification, and model-driven structured extraction remain
+incomplete. Tenant-authorized user downloads now issue audited, short-lived Cloudinary URLs only
+for post-scan versions backed by verified assets.
 
 The structured extraction/review slice now persists schema-bound proposed fields, same-parse page
 anchors, missing/ambiguous/conflicting states, optimistic human verification/correction history,
 and a critical-field finalization gate. It also provides a tested `document_analysis_graph`
 interrupt/resume contract that rejects stale source digests. LangChain/model worker execution,
-durable PostgreSQL graph invocation/checkpoint integration, automated arithmetic validation, the
-evidence-viewer UI, and authorized document delivery remain incomplete.
+durable PostgreSQL graph invocation/checkpoint integration, automated arithmetic validation, and
+the evidence-viewer UI remain incomplete.
 
 The P5/EVAL work now implements complete requirement matrices over closed RFQs and current submitted
 quote versions, four-state requirement outcomes, mandatory-unknown blocking, exact decimal landed

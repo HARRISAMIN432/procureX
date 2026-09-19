@@ -75,6 +75,10 @@ upload intents, authenticated/raw Cloudinary response verification, immutable as
 idempotent scan dispatch, and scan-gated parsing/rejection. See the
 [document API reference](../docs/API.md#implemented-document-intake-endpoints).
 
+Clean, verified document versions can be downloaded through a tenant-authorized endpoint that
+returns an audited, short-lived authenticated Cloudinary URL. Quarantined and unsafe asset states
+fail closed.
+
 Clean scans now enqueue an idempotent parse job. Native/OCR/hybrid workers can record digest-bound,
 replay-safe attempts with ordered page text and tables; a successful attempt advances the immutable
 document version to `parsed`. Parser execution and structured extraction remain subsequent P4 work.

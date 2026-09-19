@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from app.auth.context import RequestContext
 from app.core.cloudinary import (
     authenticated_document_upload_options,
+    signed_document_download_url,
     signed_document_upload_request,
     verify_document_upload_response,
 )
@@ -28,6 +29,7 @@ from app.models.documents import (
 from app.models.platform import ActorType, AuditEvent, Job, JobStatus, OutboxEvent
 from app.schemas.documents import (
     CloudinaryAssetRead,
+    DocumentDownloadRead,
     DocumentList,
     DocumentPageRead,
     DocumentParseRead,
@@ -52,6 +54,25 @@ class DocumentConflictError(ValueError):
 
 class DocumentValidationError(ValueError):
     pass
+
+
+DOWNLOADABLE_VERSION_STATUSES = {
+    DocumentVersionStatus.PARSING,
+    DocumentVersionStatus.PARSED,
+    DocumentVersionStatus.EXTRACTED,
+    DocumentVersionStatus.REVIEWED,
+}
+
+
+def validate_download_state(
+    version_status: DocumentVersionStatus, asset_status: AssetStatus
+) -> None:
+    if version_status not in DOWNLOADABLE_VERSION_STATUSES:
+        raise DocumentConflictError(
+            f"Document version in {version_status.value} state cannot be downloaded"
+        )
+    if asset_status is not AssetStatus.VERIFIED:
+        raise DocumentConflictError(f"Document asset is {asset_status.value}")
 
 
 def _parse_result_digest(payload: ParseResultCreate) -> str:
@@ -635,4 +656,55 @@ async def list_documents(context: RequestContext, limit: int, offset: int) -> Do
     return DocumentList(
         items=[await read_document(context, document_id) for document_id in document_ids],
         total=total or 0,
+    )
+
+
+async def create_download_url(
+    context: RequestContext,
+    settings: Settings,
+    version_id: uuid.UUID,
+) -> DocumentDownloadRead:
+    row = (
+        await context.session.execute(
+            select(DocumentVersion, CloudinaryAsset)
+            .join(
+                CloudinaryAsset,
+                (CloudinaryAsset.organization_id == DocumentVersion.organization_id)
+                & (CloudinaryAsset.document_version_id == DocumentVersion.id),
+            )
+            .where(
+                DocumentVersion.organization_id == context.organization_id,
+                DocumentVersion.id == version_id,
+            )
+        )
+    ).one_or_none()
+    if row is None:
+        raise DocumentNotFoundError("Document version or asset not found")
+    version, asset = row
+    validate_download_state(version.status, asset.status)
+
+    expires_at = datetime.now(UTC) + timedelta(seconds=settings.document_download_ttl_seconds)
+    download_url = signed_document_download_url(
+        settings,
+        public_id=asset.public_id,
+        format=asset.format,
+        expires_at=int(expires_at.timestamp()),
+    )
+    context.session.add(
+        AuditEvent(
+            organization_id=context.organization_id,
+            actor_type=ActorType.USER,
+            actor_id=context.user_id,
+            action="document.download_url_issued",
+            object_type="document_version",
+            object_id=version.id,
+            object_version=version.version,
+            changes={"expires_at": expires_at.isoformat()},
+        )
+    )
+    await context.session.flush()
+    return DocumentDownloadRead(
+        document_version_id=version.id,
+        expires_at=expires_at,
+        download_url=download_url,
     )

@@ -8,6 +8,7 @@ from app.auth.context import RequestContext, require_permission
 from app.core.cloudinary import CloudinaryConfigurationError
 from app.core.config import Settings, get_settings
 from app.schemas.documents import (
+    DocumentDownloadRead,
     DocumentList,
     DocumentRead,
     DocumentUploadComplete,
@@ -21,6 +22,7 @@ from app.services.documents import (
     DocumentNotFoundError,
     DocumentValidationError,
     complete_upload,
+    create_download_url,
     create_upload_intent,
     list_documents,
     read_document,
@@ -118,3 +120,12 @@ async def get_one(
     context: Annotated[RequestContext, Depends(require_permission("documents.read"))],
 ) -> DocumentRead:
     return await execute(lambda: read_document(context, document_id))
+
+
+@router.get("/versions/{version_id}/download", response_model=DocumentDownloadRead)
+async def download(
+    version_id: UUID,
+    context: Annotated[RequestContext, Depends(require_permission("documents.read"))],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> DocumentDownloadRead:
+    return await execute(lambda: create_download_url(context, settings, version_id))

@@ -6,6 +6,7 @@ from app.core.cloudinary import (
     CloudinaryConfigurationError,
     authenticated_document_upload_options,
     configure_cloudinary,
+    signed_document_download_url,
     signed_document_upload_request,
     verify_document_upload_response,
 )
@@ -76,3 +77,22 @@ def test_upload_response_signature_is_verified() -> None:
         provider_version=123,
         signature=signature,
     )
+
+
+def test_signed_document_download_is_authenticated_and_expiring() -> None:
+    settings = Settings(
+        cloudinary_cloud_name="procurex-test",
+        cloudinary_api_key="api-key",
+        cloudinary_api_secret="api-secret",
+        _env_file=None,
+    )
+    url = signed_document_download_url(
+        settings,
+        public_id="procurex/test/document-version",
+        format="pdf",
+        expires_at=1_800_000_300,
+    )
+    assert url.startswith("https://api.cloudinary.com/v1_1/procurex-test/raw/download?")
+    assert "type=authenticated" in url
+    assert "expires_at=1800000300" in url
+    assert "signature=" in url

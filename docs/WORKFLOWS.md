@@ -65,7 +65,9 @@ upload request. Completion must match the reserved public ID, declared byte coun
 delivery type, and valid provider signature before the asset is registered and one scan job is
 queued. A clean trusted scan marks the asset verified and moves the version to `parsing`; an
 infected result rejects it; a scanner error leaves it quarantined for retry. No parser, OCR, model,
-or user download may consume an asset while its version is quarantined or scanning.
+or user download may consume an asset while its version is quarantined or scanning. After a clean
+scan, an authorized user may request a short-lived signed URL; tenant access and asset state are
+rechecked on every request and issuance is audited.
 
 A clean scan also queues one `document.parse` job. A parser worker reports an immutable native,
 OCR, or hybrid attempt using a stable result key. Identical replay is accepted without duplicate

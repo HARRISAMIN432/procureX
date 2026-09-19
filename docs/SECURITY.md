@@ -27,6 +27,11 @@ The asset remains quarantined until a separately permissioned scanner reports cl
 worker must independently download and verify bytes/hash before parsing; that worker integration is
 not yet implemented, so the current slice is not a complete hostile-file defense.
 
+User downloads require `documents.read`, a tenant-scoped version lookup, a post-clean-scan version
+state, and a verified asset. The API returns an authenticated Cloudinary URL with a configurable
+60–900 second lifetime and appends an audit event. Quarantined, scanning, rejected, missing,
+deletion-pending, and deleted assets never receive a URL.
+
 Parser/OCR results require a separate `documents.process` permission and are accepted only for a
 verified asset in `parsing`. Result keys make worker replay detectable, and each successful result
 is canonically digested with tenant-qualified page ownership. Parsed text and tables remain

@@ -70,6 +70,12 @@ class DocumentUploadIntentRead(BaseModel):
     upload_parameters: dict[str, Any]
 
 
+class DocumentDownloadRead(BaseModel):
+    document_version_id: UUID
+    expires_at: datetime
+    download_url: str
+
+
 class DocumentUploadComplete(BaseModel):
     cloudinary_asset_id: str = Field(min_length=1, max_length=255)
     public_id: str = Field(min_length=1, max_length=500)
