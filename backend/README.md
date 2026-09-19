@@ -69,3 +69,8 @@ The first sourcing slice is available under `/api/v1/rfqs` and
 deadline-controlled immutable quote versions, acknowledgement/no-bid responses, stale-revision
 rejection, and clarifications. See
 [`../docs/API.md`](../docs/API.md#implemented-sourcing-endpoints).
+
+The first P4 document-intake slice is available under `/api/v1/documents`: constrained expiring
+upload intents, authenticated/raw Cloudinary response verification, immutable asset registration,
+idempotent scan dispatch, and scan-gated parsing/rejection. See the
+[document API reference](../docs/API.md#implemented-document-intake-endpoints).

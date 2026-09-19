@@ -58,6 +58,14 @@ Invitations can be acknowledged or declined with a retained no-bid reason before
 both transitions bind to an expected RFQ version and emit audit/outbox evidence. Shared and private
 clarification visibility is persisted for later supplier-portal enforcement.
 
+The implemented document intake workflow validates declared filename, media type, size, and hash;
+creates an expiring quarantined document version; and returns a signed create-only Cloudinary raw
+upload request. Completion must match the reserved public ID, declared byte count, authenticated
+delivery type, and valid provider signature before the asset is registered and one scan job is
+queued. A clean trusted scan marks the asset verified and moves the version to `parsing`; an
+infected result rejects it; a scanner error leaves it quarantined for retry. No parser, OCR, model,
+or user download may consume an asset while its version is quarantined or scanning.
+
 ## Required recovery behavior
 
 - Worker replay cannot duplicate finalized records or external actions.

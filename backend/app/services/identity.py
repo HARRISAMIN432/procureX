@@ -37,6 +37,7 @@ PERMISSION_CATALOG: dict[str, str] = {
     "organization.members.manage": "Invite, suspend, and assign organization members",
     "documents.read": "View authorized document metadata and content",
     "documents.write": "Upload and manage document versions",
+    "documents.scan": "Record trusted malware scan results",
     "analysis.read": "View AI analysis runs and evidence",
     "analysis.run": "Start and resume AI analysis runs",
     "audit.read": "View organization audit events",

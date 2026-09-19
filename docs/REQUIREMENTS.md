@@ -32,6 +32,12 @@ Invitation acknowledgement and no-bid transitions are now implemented in the con
 API with RFQ version/deadline checks and a retained decline reason. Direct supplier authentication,
 attachment intake, notification delivery, and full portal isolation remain incomplete.
 
+The initial P4/DOC-01 and DOC-02 intake slice now provides constrained PDF/XLSX/DOCX/JPEG/PNG
+upload intents, immutable authenticated Cloudinary identities, provider-response verification,
+quarantine state, idempotent scan dispatch, trusted scan-result recording, and tenant document
+reads. Actual scanner execution, server-side byte/hash verification, parsing/OCR, extraction,
+evidence anchors, review corrections, and document download authorization remain incomplete.
+
 The current backend foundation must provide:
 
 - validated environment configuration with no committed secrets;

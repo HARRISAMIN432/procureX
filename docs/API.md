@@ -123,6 +123,24 @@ a concurrent amendment makes the request stale instead of silently rebinding it.
 portal authentication and object filtering, attachment intake, outbound notifications, and
 idempotency-key middleware remain P3 work and must land before external suppliers use the API.
 
+## Implemented document intake endpoints
+
+| Endpoint | Permission | Behavior |
+|---|---|---|
+| `POST /api/v1/documents/upload-intents` | `documents.write` | Validate metadata, create a quarantined immutable version, and return a short-lived signed Cloudinary upload request |
+| `POST /api/v1/documents/{id}/versions/{version_id}/complete-upload` | `documents.write` | Verify the exact authenticated/raw provider response, register the asset, and enqueue scanning once |
+| `POST /api/v1/documents/versions/{version_id}/scan-results` | `documents.scan` | Record a trusted scanner result and gate parsing/rejection |
+| `GET /api/v1/documents` | `documents.read` | List tenant documents with version, asset, and scan state |
+| `GET /api/v1/documents/{id}` | `documents.read` | Return one tenant document and its immutable version history |
+
+The intake API currently supports PDF, XLSX, DOCX, JPEG, and PNG with a configurable byte limit
+(25 MiB by default). Filenames must be basenames, hashes are lowercase SHA-256 declarations, and
+upload intents expire after ten minutes by default. Assets remain quarantined and unavailable to
+parsers until an authorized clean scan result advances the version to `parsing`. A scanner error
+keeps the asset quarantined for an owned retry; an infected result rejects the version. The scan
+worker/provider integration, server-side byte/hash reconciliation, parsing/OCR, extraction, review,
+and authorized download URLs remain P4 work.
+
 ## Events
 
 Business state and an `outbox_events` row are committed in one transaction. Consumers assume

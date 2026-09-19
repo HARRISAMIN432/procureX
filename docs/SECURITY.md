@@ -19,6 +19,14 @@ misuse. OWASP ASVS Level 2 is the intended verification baseline, with documente
 - Append-only application audit behavior with independently retained exports.
 - Retention, legal holds, verified deletion, and documented backup aging.
 
+The initial document intake API enforces a media-type allowlist, configurable byte cap, basename
+filenames, expiring signed upload parameters, an organization/version-derived create-only public
+ID, `raw` resource type, `authenticated` delivery, and disabled overwrite. Upload completion checks
+the reserved identity, declared size, and Cloudinary response signature before recording the asset.
+The asset remains quarantined until a separately permissioned scanner reports clean. The scan
+worker must independently download and verify bytes/hash before parsing; that worker integration is
+not yet implemented, so the current slice is not a complete hostile-file defense.
+
 ## AI-specific controls
 
 Models have no purchasing authority, unrestricted database access, or arbitrary outbound network
@@ -51,5 +59,5 @@ foreign keys prevent cross-organization and cross-RFQ references, and the server
 submission timeliness. A quote must name the invitation's current RFQ revision, preventing an
 amendment from silently rebinding an in-flight submission. The current quote endpoint requires an
 internal buyer-side intake permission; it must not be exposed as supplier self-service until
-supplier principals, invitation
-credentials, object authorization, rate limits, and competitor-data response filtering are added.
+supplier principals, invitation credentials, object authorization, rate limits, and
+competitor-data response filtering are added.

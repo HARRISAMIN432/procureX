@@ -10,6 +10,8 @@ def test_local_settings_have_safe_defaults() -> None:
     assert settings.database_url.startswith("postgresql+asyncpg://")
     assert settings.effective_langgraph_database_url.startswith("postgresql://")
     assert "+asyncpg" not in settings.effective_langgraph_database_url
+    assert settings.document_max_upload_bytes == 25 * 1024 * 1024
+    assert settings.document_upload_intent_ttl_seconds == 600
 
 
 def test_production_requires_cloudinary_credentials() -> None:
@@ -38,3 +40,10 @@ def test_production_rejects_development_header_auth() -> None:
             cloudinary_api_secret="secret",
             _env_file=None,
         )
+
+
+def test_document_intake_limits_must_be_safe() -> None:
+    with pytest.raises(ValidationError):
+        Settings(document_max_upload_bytes=0, _env_file=None)
+    with pytest.raises(ValidationError):
+        Settings(document_upload_intent_ttl_seconds=30, _env_file=None)

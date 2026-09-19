@@ -1,7 +1,7 @@
 from enum import StrEnum
 from functools import lru_cache
 
-from pydantic import SecretStr, computed_field, model_validator
+from pydantic import Field, SecretStr, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     cloudinary_api_key: SecretStr | None = None
     cloudinary_api_secret: SecretStr | None = None
     cloudinary_folder_prefix: str = "procurex/local"
+    document_max_upload_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
+    document_upload_intent_ttl_seconds: int = Field(default=10 * 60, ge=60, le=3600)
 
     rabbitmq_url: SecretStr = SecretStr("amqp://procurex:procurex@localhost:5672//")
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")

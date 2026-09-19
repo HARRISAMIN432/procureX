@@ -1,7 +1,14 @@
+import secrets
+import time
 from typing import Any
 from uuid import UUID
 
 import cloudinary  # type: ignore[import-untyped]
+from cloudinary.utils import (  # type: ignore[import-untyped]
+    SIGNATURE_SHA1,
+    SIGNATURE_SHA256,
+    api_sign_request,
+)
 
 from app.core.config import Settings
 
@@ -43,3 +50,64 @@ def authenticated_document_upload_options(
         "unique_filename": False,
         "use_filename": False,
     }
+
+
+def signed_document_upload_request(
+    settings: Settings,
+    organization_id: UUID,
+    document_version_id: UUID,
+    *,
+    timestamp: int | None = None,
+) -> dict[str, Any]:
+    """Create a narrowly scoped signed request for a quarantined raw asset."""
+    configure_cloudinary(settings)
+    assert settings.cloudinary_api_key is not None
+    assert settings.cloudinary_api_secret is not None
+    assert settings.cloudinary_cloud_name is not None
+    issued_at = int(time.time()) if timestamp is None else timestamp
+    options = authenticated_document_upload_options(
+        settings, organization_id, document_version_id
+    )
+    signed_parameters = {
+        "public_id": options["public_id"],
+        "type": options["type"],
+        "overwrite": options["overwrite"],
+        "unique_filename": options["unique_filename"],
+        "use_filename": options["use_filename"],
+        "timestamp": issued_at,
+    }
+    signature = api_sign_request(
+        signed_parameters,
+        settings.cloudinary_api_secret.get_secret_value(),
+        algorithm=SIGNATURE_SHA256,
+    )
+    return {
+        "upload_url": (
+            f"https://api.cloudinary.com/v1_1/{settings.cloudinary_cloud_name}/raw/upload"
+        ),
+        "parameters": {
+            **signed_parameters,
+            "resource_type": options["resource_type"],
+            "api_key": settings.cloudinary_api_key.get_secret_value(),
+            "signature": signature,
+        },
+    }
+
+
+def verify_document_upload_response(
+    settings: Settings,
+    *,
+    public_id: str,
+    provider_version: int,
+    signature: str,
+) -> bool:
+    """Verify the signature returned by Cloudinary after a successful upload."""
+    if settings.cloudinary_api_secret is None:
+        raise CloudinaryConfigurationError("Cloudinary server credentials are incomplete")
+    expected = api_sign_request(
+        {"public_id": public_id, "version": provider_version},
+        settings.cloudinary_api_secret.get_secret_value(),
+        algorithm=SIGNATURE_SHA1,
+        signature_version=1,
+    )
+    return secrets.compare_digest(signature, expected)

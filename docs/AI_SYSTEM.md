@@ -17,6 +17,11 @@ authorize source → load parse/OCR result → extract typed fields
 → finalize extraction version
 ```
 
+The graph is not started by upload. It may consume a document version only after the intake and
+malware-scan workflow has moved that immutable version to `parsing`. The signed-upload/quarantine
+slice is implemented; parser/OCR nodes, extraction schemas, evidence validation, checkpoints, and
+human-review interrupts remain pending.
+
 ### `evaluation_graph`
 
 ```text
@@ -49,4 +54,3 @@ Model, prompt, parser, graph, and retrieval changes run against a frozen labeled
 accuracy, critical errors, citation correctness, unsupported claims, corrections, latency, cost,
 and repeated-run agreement. Deterministic pipeline baselines remain available to determine whether
 additional graph complexity provides measurable value.
-

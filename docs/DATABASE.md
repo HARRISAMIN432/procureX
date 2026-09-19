@@ -66,4 +66,9 @@ after tenant context is established.
 
 `cloudinary_assets` stores stable provider identifiers and metadata, not delivery URLs. Assets must
 use `authenticated` delivery, overwrite is disabled, and each `document_version` owns one asset.
-The application authorizes every access before generating a short-lived signed URL.
+The application authorizes every access before generating a short-lived signed URL. New document
+versions store their upload-intent expiry and remain quarantined until the exact reserved provider
+identity, declared byte count, and upload response signature are verified. Completion creates one
+tenant-scoped `document.scan` job using the document-version ID as its idempotency key. Scan results
+are append-only per scanner/version; only a clean result marks the asset verified and permits the
+document version to enter parsing.
