@@ -11,6 +11,11 @@
 - Updates use expected versions or ETags.
 - Long work returns `202 Accepted` with an authorized job resource.
 
+Every HTTP response includes `X-Request-ID`. A caller-supplied value is echoed only when it is a
+bounded ASCII token; otherwise the API generates a UUID. Responses also use
+`Cache-Control: no-store` and defensive browser headers. Browser access is limited to exact CORS
+origins, and requests with an untrusted `Host` header are rejected before route handling.
+
 Consequential commands use explicit endpoints such as:
 
 ```text

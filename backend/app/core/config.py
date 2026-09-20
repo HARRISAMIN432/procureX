@@ -1,5 +1,6 @@
 from enum import StrEnum
 from functools import lru_cache
+from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -30,6 +31,10 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     environment: Environment = Environment.LOCAL
     debug: bool = False
+    allowed_hosts: list[str] = Field(
+        default_factory=lambda: ["localhost", "127.0.0.1", "testserver"]
+    )
+    cors_allowed_origins: list[str] = Field(default_factory=list)
 
     auth_mode: AuthMode = AuthMode.DEV_HEADERS
     dev_bootstrap_key: SecretStr = SecretStr("local-development-only")
@@ -94,6 +99,36 @@ class Settings(BaseSettings):
                 raise ValueError("Staging and production require PROCUREX_LLM_PROVIDER=gemini")
             if self.gemini_api_key is None or not self.gemini_api_key.get_secret_value().strip():
                 raise ValueError("Staging and production require PROCUREX_GEMINI_API_KEY")
+            if self.debug:
+                raise ValueError("Staging and production must disable debug mode")
+            if self.database_echo:
+                raise ValueError("Staging and production must disable database statement logging")
+            unsafe_hosts = [
+                host
+                for host in self.allowed_hosts
+                if not host.strip() or "*" in host or "://" in host or "/" in host
+            ]
+            if not self.allowed_hosts or unsafe_hosts:
+                raise ValueError("Staging and production require explicit trusted hosts")
+            if set(self.allowed_hosts) <= {"localhost", "127.0.0.1", "testserver"}:
+                raise ValueError("Staging and production require non-local trusted hosts")
+            if not self.cors_allowed_origins or "*" in self.cors_allowed_origins:
+                raise ValueError("Staging and production require explicit CORS origins")
+            insecure_origins = []
+            for origin in self.cors_allowed_origins:
+                parsed = urlsplit(origin)
+                if (
+                    parsed.scheme != "https"
+                    or parsed.hostname is None
+                    or parsed.username is not None
+                    or parsed.password is not None
+                    or parsed.query
+                    or parsed.fragment
+                    or parsed.path not in {"", "/"}
+                ):
+                    insecure_origins.append(origin)
+            if insecure_origins:
+                raise ValueError("Staging and production CORS origins must be HTTPS origins")
         return self
 
 

@@ -24,6 +24,12 @@ uv run ruff check .
 uv run pytest
 ```
 
+Browser and proxy boundaries are explicit. Configure `PROCUREX_ALLOWED_HOSTS` and
+`PROCUREX_CORS_ALLOWED_ORIGINS` as JSON arrays. Staging and production reject wildcard/empty
+values, non-HTTPS browser origins, debug mode, and SQL statement logging. The API returns a safe
+`X-Request-ID` and defensive browser headers on every response; production also disables `/docs`,
+`/redoc`, and `/openapi.json`. TLS termination and HTTP-to-HTTPS redirects remain edge concerns.
+
 Application transactions that access tenant-owned tables must use
 `tenant_transaction(organization_id)` or set the equivalent transaction-local PostgreSQL
 context. Never accept the organization ID directly from an unauthenticated request body.

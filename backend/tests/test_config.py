@@ -49,3 +49,41 @@ def test_document_intake_limits_must_be_safe() -> None:
         Settings(document_max_upload_bytes=0, _env_file=None)
     with pytest.raises(ValidationError):
         Settings(document_upload_intent_ttl_seconds=30, _env_file=None)
+
+
+def deployed_settings(**overrides: object) -> dict[str, object]:
+    values: dict[str, object] = {
+        "environment": Environment.PRODUCTION,
+        "auth_mode": AuthMode.OIDC,
+        "oidc_issuer": "https://identity.example.com",
+        "oidc_audience": "procurex-api",
+        "cloudinary_cloud_name": "procurex",
+        "cloudinary_api_key": "key",
+        "cloudinary_api_secret": "secret",
+        "gemini_api_key": "model-key",
+        "allowed_hosts": ["api.procurex.example"],
+        "cors_allowed_origins": ["https://app.procurex.example"],
+        "_env_file": None,
+    }
+    values.update(overrides)
+    return values
+
+
+@pytest.mark.parametrize(
+    ("override", "message"),
+    [
+        ({"debug": True}, "disable debug"),
+        ({"database_echo": True}, "statement logging"),
+        ({"allowed_hosts": ["*"]}, "trusted hosts"),
+        ({"allowed_hosts": ["*.procurex.example"]}, "trusted hosts"),
+        ({"allowed_hosts": ["localhost"]}, "non-local trusted hosts"),
+        ({"cors_allowed_origins": ["*"]}, "CORS origins"),
+        ({"cors_allowed_origins": ["http://app.procurex.example"]}, "HTTPS origins"),
+        ({"cors_allowed_origins": ["https://app.procurex.example/path"]}, "HTTPS origins"),
+    ],
+)
+def test_deployed_settings_reject_unsafe_http_edge_configuration(
+    override: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ValidationError, match=message):
+        Settings(**deployed_settings(**override))

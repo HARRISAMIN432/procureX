@@ -76,6 +76,10 @@ matching with blocking exception resolution, and idempotent sandbox accounting e
 reconciliation. Order, invoice, and accounting permissions are included in new-organization
 bootstrap; rejected or change-requested POs cannot proceed to receipt or invoice processing.
 
+The first P8 stabilization slice adds fail-closed deployed HTTP-edge configuration, exact trusted
+host and CORS allowlists, HTTPS-only deployed browser origins, request correlation IDs, defensive
+response headers, HSTS in staging/production, and disabled production API documentation routes.
+
 The current backend foundation must provide:
 
 - validated environment configuration with no committed secrets;

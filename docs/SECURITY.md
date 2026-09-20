@@ -62,6 +62,14 @@ Development header authentication is explicitly limited to local/test configurat
 production configuration requires OIDC mode, issuer, and audience, and must not start with the
 development header mechanism enabled.
 
+The P8 HTTP-edge baseline rejects untrusted `Host` headers, allows browser cross-origin requests
+only from configured exact origins, and fails deployed configuration when hosts/origins are empty
+or wildcarded. Deployed browser origins must use HTTPS; debug and SQL statement logging are
+disabled. Every HTTP response carries a bounded or generated `X-Request-ID`, `nosniff`, frame
+denial, no-referrer, restricted browser-feature, and no-store headers. Staging and production add
+HSTS, while production disables the interactive API documentation and OpenAPI routes. TLS still
+terminates at the deployment edge; the edge must redirect plaintext traffic before forwarding.
+
 Approval requests bind immutable requisition and policy versions. Distinct approvers are enforced
 by a database uniqueness constraint, requester self-approval can be prohibited by policy, and the
 final approver must also hold the separate `budgets.reserve` permission.
