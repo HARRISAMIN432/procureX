@@ -15,6 +15,9 @@ Every HTTP response includes `X-Request-ID`. A caller-supplied value is echoed o
 bounded ASCII token; otherwise the API generates a UUID. Responses also use
 `Cache-Control: no-store` and defensive browser headers. Browser access is limited to exact CORS
 origins, and requests with an untrusted `Host` header are rejected before route handling.
+Responses include `Server-Timing` for application processing. Unhandled failures return a generic
+`internal_server_error` with the same request ID; exception messages and connection details are not
+returned.
 
 Consequential commands use explicit endpoints such as:
 

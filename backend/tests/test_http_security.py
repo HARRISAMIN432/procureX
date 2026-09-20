@@ -1,5 +1,8 @@
+import asyncio
+import logging
 import re
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import AuthMode, Environment, Settings
@@ -33,6 +36,7 @@ def test_security_headers_and_valid_request_id_are_returned() -> None:
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["referrer-policy"] == "no-referrer"
     assert response.headers["cache-control"] == "no-store"
+    assert re.fullmatch(r"app;dur=\d+\.\d", response.headers["server-timing"])
     assert "strict-transport-security" not in response.headers
 
 
@@ -95,3 +99,63 @@ def test_production_enables_hsts_and_disables_api_docs() -> None:
     assert health.headers["strict-transport-security"].startswith("max-age=31536000")
     assert docs.status_code == 404
     assert schema.status_code == 404
+
+
+def test_unhandled_error_is_sanitized_correlated_and_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    application = create_app(Settings(_env_file=None))
+
+    @application.get("/failure-drill")
+    async def failure_drill() -> None:
+        raise RuntimeError("postgresql://user:secret@database/procurex")
+
+    caplog.set_level(logging.INFO, logger="procurex.http")
+    with TestClient(application, raise_server_exceptions=False) as client:
+        response = client.get("/failure-drill", headers={"X-Request-ID": "failure-drill-7"})
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": {
+            "code": "internal_server_error",
+            "message": "Unexpected server error",
+            "request_id": "failure-drill-7",
+        }
+    }
+    assert response.headers["x-request-id"] == "failure-drill-7"
+    assert "secret" not in response.text
+    assert "secret" not in caplog.text
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "http_request_complete"
+    )
+    assert '"request_id":"failure-drill-7"' in record.getMessage()
+    assert record.request_id == "failure-drill-7"
+    assert record.http_method == "GET"
+    assert record.http_route == "/failure-drill"
+    assert record.status_code == 500
+    assert record.error_type == "RuntimeError"
+    assert record.duration_ms >= 0
+
+
+def test_slow_request_is_logged_as_warning(caplog: pytest.LogCaptureFixture) -> None:
+    application = create_app(Settings(slow_request_threshold_ms=1, _env_file=None))
+
+    @application.get("/slow-drill")
+    async def slow_drill() -> dict[str, str]:
+        await asyncio.sleep(0.01)
+        return {"status": "ok"}
+
+    caplog.set_level(logging.INFO, logger="procurex.http")
+    with TestClient(application) as client:
+        response = client.get("/slow-drill")
+
+    assert response.status_code == 200
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "http_request_complete"
+    )
+    assert record.levelno == logging.WARNING
+    assert record.duration_ms >= 1

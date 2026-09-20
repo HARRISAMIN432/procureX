@@ -34,6 +34,10 @@ values, non-HTTPS browser origins, debug mode, and SQL statement logging. The AP
 structured `503` when the dependency fails or stalls. `/health/live` performs no dependency check.
 See the [database readiness runbook](../docs/runbooks/database-readiness.md) before wiring probes.
 
+Every request returns `Server-Timing` and writes safe request-ID-correlated completion telemetry.
+Requests over `PROCUREX_SLOW_REQUEST_THRESHOLD_MS` and all server errors are warnings. See the
+[API latency/error runbook](../docs/runbooks/api-latency-and-errors.md) for triage and measurement.
+
 Application transactions that access tenant-owned tables must use
 `tenant_transaction(organization_id)` or set the equivalent transaction-local PostgreSQL
 context. Never accept the organization ID directly from an unauthenticated request body.

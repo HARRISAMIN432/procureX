@@ -69,6 +69,9 @@ disabled. Every HTTP response carries a bounded or generated `X-Request-ID`, `no
 denial, no-referrer, restricted browser-feature, and no-store headers. Staging and production add
 HSTS, while production disables the interactive API documentation and OpenAPI routes. TLS still
 terminates at the deployment edge; the edge must redirect plaintext traffic before forwarding.
+Unhandled application errors are converted to a generic request-ID-bearing response. Completion
+telemetry records only safe request metadata and exception class—not query strings, request bodies,
+credentials, supplier content, or exception messages that may embed sensitive provider details.
 
 Approval requests bind immutable requisition and policy versions. Distinct approvers are enforced
 by a database uniqueness constraint, requester self-approval can be prohibited by policy, and the

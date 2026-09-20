@@ -64,6 +64,7 @@ def create_app(
     application.add_middleware(
         SecurityHeadersMiddleware,
         enable_hsts=configured.environment in {Environment.STAGING, Environment.PRODUCTION},
+        slow_request_threshold_ms=configured.slow_request_threshold_ms,
     )
 
     @application.get("/health/live", tags=["health"])

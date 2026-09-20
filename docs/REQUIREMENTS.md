@@ -82,6 +82,9 @@ response headers, HSTS in staging/production, and disabled production API docume
 Database readiness is now bounded by a configurable timeout and returns a safe structured `503`
 without leaking connection errors; a recovery/drill runbook distinguishes traffic draining from
 process restart decisions.
+Request completion telemetry now correlates method, path, status, safe exception class, and latency
+without logging query strings or payloads. Slow requests and server failures are elevated, clients
+receive sanitized correlated errors, and an operational triage/drill runbook defines evidence.
 
 The current backend foundation must provide:
 
