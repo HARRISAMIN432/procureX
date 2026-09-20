@@ -9,8 +9,9 @@ isolated supplier portal.
 
 Other open release blockers:
 
-- malware scanner, byte/hash-verifying download worker, parser/OCR execution, and evidence viewer
-  are not implemented end to end;
+- parser/OCR execution and an evidence viewer are not integrated; the new byte/hash-verifying
+  ClamAV worker still requires a configured Cloudinary account, scanner image, and hostile-input
+  staging drill before it is release evidence;
 - Cloudinary reconciliation, deletion, backup, and restore have not been exercised against a
   selected account and retention policy;
 - the database restore CLI is non-production only and no live restore evidence exists in this

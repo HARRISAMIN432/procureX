@@ -7,7 +7,7 @@ celery_app = Celery(
     "procurex",
     broker=settings.rabbitmq_url.get_secret_value(),
     backend=settings.redis_url.get_secret_value(),
-    include=["app.workers.evaluations"],
+    include=["app.workers.documents", "app.workers.evaluations"],
 )
 celery_app.conf.update(
     accept_content=["json"],
@@ -16,5 +16,8 @@ celery_app.conf.update(
     task_acks_late=True,
     task_reject_on_worker_lost=True,
     worker_prefetch_multiplier=1,
-    task_routes={"procurex.evaluation_analysis": {"queue": "ai.evaluations"}},
+    task_routes={
+        "procurex.document_scan": {"queue": "documents.security"},
+        "procurex.evaluation_analysis": {"queue": "ai.evaluations"},
+    },
 )

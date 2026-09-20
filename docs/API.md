@@ -158,9 +158,11 @@ parse job. Parser results use a stable `result_key`: replaying the same content 
 result, while reusing the key with changed content is a conflict. Successful native, OCR, or hybrid
 results require consecutive pages and advance the version to `parsed`; failed attempts remain
 immutable while the version stays recoverable in `parsing`. User downloads recheck tenant access
-and safe asset state before issuing a short-lived authenticated URL. The scan and parser
-worker/provider integrations, server-side byte/hash reconciliation, model-driven extraction, and
-parser-worker downloads remain P4 work.
+and safe asset state before issuing a short-lived authenticated URL. Upload completion dispatches
+the durable scan job to a dedicated document-security queue. That worker independently retrieves
+the authenticated asset, rejects redirects, enforces the declared byte count and SHA-256, and
+accepts only an explicit timeout-bounded ClamAV clean/infected verdict. Parser execution, OCR,
+model-driven extraction, and parser-worker downloads remain incomplete.
 
 ## Implemented extraction and review endpoints
 

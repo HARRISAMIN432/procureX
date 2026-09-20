@@ -2,7 +2,7 @@ from collections.abc import Awaitable, Callable
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 
 from app.auth.context import RequestContext, require_permission
 from app.core.cloudinary import CloudinaryConfigurationError
@@ -29,6 +29,7 @@ from app.services.documents import (
     record_parse_result,
     record_scan_result,
 )
+from app.workers.documents import enqueue_document_scan
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -81,10 +82,13 @@ async def finish_upload(
     payload: DocumentUploadComplete,
     context: Annotated[RequestContext, Depends(require_permission("documents.write"))],
     settings: Annotated[Settings, Depends(get_settings)],
+    background_tasks: BackgroundTasks,
 ) -> DocumentRead:
-    return await execute(
+    document = await execute(
         lambda: complete_upload(context, settings, document_id, version_id, payload)
     )
+    background_tasks.add_task(enqueue_document_scan, context.organization_id, version_id)
+    return document
 
 
 @router.post("/versions/{version_id}/scan-results", response_model=DocumentRead)

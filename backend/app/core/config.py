@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     document_max_upload_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
     document_upload_intent_ttl_seconds: int = Field(default=10 * 60, ge=60, le=3600)
     document_download_ttl_seconds: int = Field(default=5 * 60, ge=60, le=900)
+    document_download_timeout_seconds: float = Field(default=30, gt=0, le=120)
+    document_scan_timeout_seconds: float = Field(default=60, gt=0, le=300)
+    document_scanner_command: list[str] = Field(default_factory=lambda: ["clamscan"])
 
     rabbitmq_url: SecretStr = SecretStr("amqp://procurex:procurex@localhost:5672//")
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")
@@ -122,6 +125,10 @@ class Settings(BaseSettings):
                 raise ValueError("Staging and production must disable debug mode")
             if self.database_echo:
                 raise ValueError("Staging and production must disable database statement logging")
+            if not self.document_scanner_command or any(
+                not part.strip() for part in self.document_scanner_command
+            ):
+                raise ValueError("Staging and production require a document scanner command")
             unsafe_hosts = [
                 host
                 for host in self.allowed_hosts

@@ -89,13 +89,15 @@ def _record_event(
     changes: dict[str, object],
     *,
     event_version: int | None = None,
+    actor_type: ActorType = ActorType.USER,
 ) -> None:
+    actor_id = context.user_id if actor_type is ActorType.USER else None
     context.session.add_all(
         [
             AuditEvent(
                 organization_id=context.organization_id,
-                actor_type=ActorType.USER,
-                actor_id=context.user_id,
+                actor_type=actor_type,
+                actor_id=actor_id,
                 action=action,
                 object_type="document_version",
                 object_id=version.id,
@@ -116,7 +118,7 @@ def _record_event(
                     "status": version.status.value,
                     **changes,
                 },
-                actor_id=context.user_id,
+                actor_id=actor_id,
             ),
         ]
     )
@@ -292,6 +294,8 @@ async def record_scan_result(
     context: RequestContext,
     version_id: uuid.UUID,
     payload: ScanResultCreate,
+    *,
+    actor_type: ActorType = ActorType.USER,
 ) -> DocumentRead:
     candidate = await context.session.scalar(
         select(DocumentVersion).where(
@@ -395,6 +399,7 @@ async def record_scan_result(
             "scan_status": payload.status.value,
         },
         event_version=(scan_attempts or 0) + 1,
+        actor_type=actor_type,
     )
     await context.session.flush()
     return await read_document(context, document.id)
@@ -640,9 +645,7 @@ async def read_document(context: RequestContext, document_id: uuid.UUID) -> Docu
 
 async def list_documents(context: RequestContext, limit: int, offset: int) -> DocumentList:
     total = await context.session.scalar(
-        select(func.count(Document.id)).where(
-            Document.organization_id == context.organization_id
-        )
+        select(func.count(Document.id)).where(Document.organization_id == context.organization_id)
     )
     document_ids = list(
         await context.session.scalars(

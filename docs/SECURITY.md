@@ -24,8 +24,10 @@ filenames, expiring signed upload parameters, an organization/version-derived cr
 ID, `raw` resource type, `authenticated` delivery, and disabled overwrite. Upload completion checks
 the reserved identity, declared size, and Cloudinary response signature before recording the asset.
 The asset remains quarantined until a separately permissioned scanner reports clean. The scan
-worker must independently download and verify bytes/hash before parsing; that worker integration is
-not yet implemented, so the current slice is not a complete hostile-file defense.
+worker independently downloads the signed authenticated asset without following redirects, bounds
+the response, verifies both its byte count and SHA-256, and runs ClamAV with a timeout. Operational
+or integrity failures fail closed and leave the asset quarantined for a bounded retry. Parser/OCR
+isolation and hostile-input staging evidence remain incomplete.
 
 User downloads require `documents.read`, a tenant-scoped version lookup, a post-clean-scan version
 state, and a verified asset. The API returns an authenticated Cloudinary URL with a configurable
