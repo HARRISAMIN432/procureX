@@ -65,3 +65,25 @@ anchors from completed extractions of document versions immutably attached to th
 The snapshot also contains a deterministic, non-generative summary. Formal waivers, independent
 reviews, risk signals, model-backed grounded narratives, and allocation optimization remain later
 capabilities.
+
+## Order operations rule
+
+A purchase order can be prepared only from an `approved` award whose evaluation, allocation,
+approval policy, selected quote digests, and supplier eligibility are still current. One award and
+supplier pair maps to one PO. The header carries workflow state and an optimistic version; each
+commercial document is an immutable PO version with its own canonical snapshot and digest.
+
+An amendment always creates a new version. Quantity, unit-price, tax, or freight changes are
+material and enter `pending_authorization`; the preparer cannot authorize that version. Receipts
+bind to the current issued version. Cumulative accepted plus rejected quantity cannot exceed the
+order, while accepted quantity net of returns drives fulfillment.
+
+Two-way invoice matching uses ordered quantity; three-way matching uses accepted quantity net of
+returns. Both subtract earlier successfully matched billing. Each immutable match attempt contains
+the PO digest, quantity basis, invoice lines, and tolerance policy. Duplicate number, currency,
+quantity, unit-price, tax, freight, and arithmetic failures create blocking exception rows. Export
+requires a clean match or explicit resolution of every blocking exception.
+
+The accounting sandbox is an integration boundary, not a ledger. An invoice has at most one export,
+identified by `PX-INVOICE-{invoice_id}` and protected by a payload digest. Retries adopt an identical
+prior creation; a changed payload enters reconciliation-required state.

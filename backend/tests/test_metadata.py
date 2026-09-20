@@ -4,6 +4,8 @@ from app import models  # noqa: F401
 from app.db.base import Base
 
 EXPECTED_TABLES = {
+    "accounting_exports",
+    "accounting_sandbox_entries",
     "allocation_scenarios",
     "allocation_lines",
     "organizations",
@@ -16,6 +18,8 @@ EXPECTED_TABLES = {
     "organization_settings",
     "documents",
     "document_versions",
+    "delivery_receipts",
+    "delivery_receipt_lines",
     "cloudinary_assets",
     "document_scans",
     "document_parses",
@@ -31,6 +35,10 @@ EXPECTED_TABLES = {
     "analysis_runs",
     "model_invocations",
     "jobs",
+    "invoices",
+    "invoice_lines",
+    "invoice_matches",
+    "match_exceptions",
     "outbox_events",
     "audit_events",
     "requisitions",
@@ -58,6 +66,10 @@ EXPECTED_TABLES = {
     "quote_submission_documents",
     "quote_lines",
     "rfq_clarifications",
+    "purchase_orders",
+    "purchase_order_versions",
+    "purchase_order_lines",
+    "receipt_returns",
 }
 
 

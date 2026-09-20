@@ -211,11 +211,41 @@ and versions are copied into the dossier; expired quotes, changed policies, stal
 analyses, and other material source changes persist a `stale` award rather than accepting another
 decision.
 
+## Implemented order operations endpoints
+
+| Endpoint | Permission | Behavior |
+|---|---|---|
+| `POST /api/v1/awards/{id}/purchase-orders` | `orders.write` | Prepare one supplier PO from an approved, current award snapshot |
+| `GET /api/v1/purchase-orders/{id}` | `orders.read` | Return the current PO and immutable version snapshot |
+| `POST /api/v1/purchase-orders/{id}/amend` | `orders.write` | Create a new version; commercial changes require authorization |
+| `POST /api/v1/purchase-orders/{id}/authorize-amendment` | `orders.approve` | Independently authorize a material amendment |
+| `POST /api/v1/purchase-orders/{id}/issue` | `orders.issue` | Issue the exact current digest |
+| `POST /api/v1/purchase-orders/{id}/acknowledge` | `orders.acknowledge` | Record acceptance, rejection, or proposed changes without changing terms |
+| `POST /api/v1/purchase-orders/{id}/receipts` | `orders.receive` | Record accepted/rejected quantities with over-receipt protection |
+| `POST /api/v1/receipt-lines/{id}/returns` | `orders.receive` | Record a return up to accepted quantity |
+| `POST /api/v1/purchase-orders/{id}/invoices` | `invoices.write` | Capture invoice lines and flag normalized duplicate numbers |
+| `GET /api/v1/invoices/{id}` | `invoices.read` | Return invoice lines and workflow version |
+| `POST /api/v1/invoices/{id}/match` | `invoices.match` | Run deterministic two-way or three-way matching |
+| `POST /api/v1/match-exceptions/{id}/resolve` | `invoices.match` | Record an auditable exception resolution |
+| `POST /api/v1/invoices/{id}/approve-for-export` | `invoices.approve` | Approve a clean or fully resolved match |
+| `POST /api/v1/invoices/{id}/accounting-exports` | `accounting.export` | Export once using a stable external reference |
+| `POST /api/v1/accounting-exports/{id}/retry` | `accounting.export` | Reconcile by stable reference before retry |
+| `POST /api/v1/accounting-exports/{id}/reconcile` | `accounting.reconcile` | Record reconciled or mismatch status |
+
+PO creation revalidates the award's evaluation, allocation, policy, selected quote, and supplier
+inputs. Material quantity or monetary amendments require independent renewed authorization.
+Receipts count accepted plus rejected delivery against the ordered ceiling, while fulfillment uses
+accepted quantity net of returns. Matching snapshots the PO revision, receipt basis, prior matched
+billing, tolerances, and invoice inputs. Quantity, price, currency, tax, freight, total, and
+duplicate failures create durable exception rows. Accounting export uses one row per invoice, a
+stable `PX-INVOICE-{invoice_id}` reference, and a payload digest for retry safety.
+
 ## Events
 
 Business state and an `outbox_events` row are committed in one transaction. Consumers assume
 at-least-once delivery and deduplicate by event ID. The event envelope contains organization,
 aggregate/version, event/schema type, actor, time, correlation, causation, and a minimal payload.
 
-The first event families are `document.*`, `analysis.*`, followed by the procurement events listed
-in [ROADMAP.md](ROADMAP.md), Section 9.
+Implemented event families include `purchase_order.*`, `delivery_receipt.*`, `delivery_return.*`,
+`invoice.*`, and `accounting_export.*`. Every consequential P7 mutation writes its audit and outbox
+records in the same database transaction.

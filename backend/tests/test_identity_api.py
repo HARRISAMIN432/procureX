@@ -37,19 +37,22 @@ def test_identity_routes_are_in_openapi() -> None:
     assert "/api/v1/rfqs/{rfq_id}/clarifications/{clarification_id}/answer" in schema["paths"]
     assert "/api/v1/documents/upload-intents" in schema["paths"]
     assert (
-        "/api/v1/documents/{document_id}/versions/{version_id}/complete-upload"
-        in schema["paths"]
+        "/api/v1/documents/{document_id}/versions/{version_id}/complete-upload" in schema["paths"]
     )
     assert "/api/v1/documents/versions/{version_id}/scan-results" in schema["paths"]
     assert "/api/v1/documents/versions/{version_id}/parse-results" in schema["paths"]
     assert "/api/v1/documents/versions/{version_id}/download" in schema["paths"]
     assert "/api/v1/document-versions/{version_id}/extractions" in schema["paths"]
-    assert (
-        "/api/v1/extractions/{extraction_id}/fields/{field_id}/review" in schema["paths"]
-    )
+    assert "/api/v1/extractions/{extraction_id}/fields/{field_id}/review" in schema["paths"]
     assert "/api/v1/extractions/{extraction_id}/finalize" in schema["paths"]
     assert "/api/v1/rfqs/{rfq_id}/evaluations" in schema["paths"]
     assert "/api/v1/evaluations/{evaluation_id}" in schema["paths"]
+    assert "/api/v1/awards/{award_id}/purchase-orders" in schema["paths"]
+    assert "/api/v1/purchase-orders/{purchase_order_id}/issue" in schema["paths"]
+    assert "/api/v1/purchase-orders/{purchase_order_id}/receipts" in schema["paths"]
+    assert "/api/v1/purchase-orders/{purchase_order_id}/invoices" in schema["paths"]
+    assert "/api/v1/invoices/{invoice_id}/match" in schema["paths"]
+    assert "/api/v1/invoices/{invoice_id}/accounting-exports" in schema["paths"]
 
 
 def test_bootstrap_schema_normalizes_names() -> None:

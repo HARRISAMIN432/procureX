@@ -23,9 +23,9 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 | Sourcing | `rfqs`, `rfq_items`, `rfq_requirements`, `rfq_revisions`, `rfq_invitations`, `quote_submissions`, `quote_lines`, `quote_submission_documents`, `rfq_clarifications` |
 | Evaluation | `evaluations`, `offer_evaluations`, `requirement_checks`, `requirement_check_evidence` |
 | Allocation and awards | `allocation_scenarios`, `allocation_lines`, `awards`, `award_decisions` |
-
-Later migrations add order and finance aggregates
-described in [DOMAIN.md](DOMAIN.md).
+| Order operations | `purchase_orders`, `purchase_order_versions`, `purchase_order_lines`, `delivery_receipts`, `delivery_receipt_lines`, `receipt_returns` |
+| Invoice matching | `invoices`, `invoice_lines`, `invoice_matches`, `match_exceptions` |
+| Accounting integration | `accounting_exports`, `accounting_sandbox_entries` |
 
 Budget balances are derived from an append-only four-bucket ledger: available, reserved,
 committed, and consumed. Reservation locks the budget row, verifies the current available sum, and
@@ -60,6 +60,12 @@ constraint set. Its lines preserve selected submission, supplier, RFQ item, quan
 unit cost, and extended cost. An `award` binds one independently validated feasible scenario to an
 immutable recommendation dossier and approval-policy snapshot. `award_decisions` are append-only
 and unique per approver and award; changed selected-source inputs move a pending award to `stale`.
+
+An issued PO is represented by a mutable workflow header and immutable revision rows. Tenant-scoped
+composite foreign keys bind every PO to its award/supplier, every line to its version/RFQ item, and
+every receipt and invoice line to a line owned by the same organization. Unique command keys
+enforce idempotency. The one-export-per-invoice and stable external-reference constraints provide
+the final duplicate barrier for the accounting sandbox. All twelve P7 tables have forced RLS.
 
 ## Tenant isolation
 

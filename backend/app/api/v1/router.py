@@ -6,6 +6,7 @@ from app.api.v1.routes import (
     documents,
     evaluations,
     extractions,
+    operations,
     organizations,
     requisitions,
     sourcing,
@@ -22,3 +23,4 @@ api_router.include_router(sourcing.router)
 api_router.include_router(documents.router)
 api_router.include_router(extractions.router)
 api_router.include_router(evaluations.router)
+api_router.include_router(operations.router)

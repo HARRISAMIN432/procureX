@@ -118,5 +118,19 @@ preserve constraints, solver status, objective/bound/gap, infeasibility diagnost
 constraint checks, and immutable digests. Validated feasible scenarios can become recommendation
 dossiers governed by the existing versioned approval policies. Quorum decisions are append-only,
 self-approval policy is enforced, and changed evaluation, allocation, grounded analysis, approval
-policy, selected quote, or supplier inputs mark an award stale before authorization. P6 approves an
-award snapshot only; PO issuance remains P7.
+policy, selected quote, or supplier inputs mark an award stale before authorization.
+
+P7 order operations are available through purchase-order, receipt, invoice, match, and accounting-
+export endpoints. POs originate only from a current approved award, retain immutable revisions, and
+require independent renewed authorization for material amendments. Cumulative receipt and return
+rules protect quantities. Deterministic two-/three-way matching records duplicate, quantity, price,
+tax, freight, currency, and total exceptions with explicit tolerances. The accounting sandbox uses
+stable external references and payload digests for idempotent retry and reconciliation. See the
+[order operations API](../docs/API.md#implemented-order-operations-endpoints).
+
+Run the PostgreSQL P7 integration scenario against a migrated test database with:
+
+```bash
+PROCUREX_TEST_DATABASE_URL=postgresql+asyncpg://procurex:procurex@localhost:5432/procurex \
+  uv run pytest tests/test_order_operations_integration.py
+```

@@ -107,6 +107,20 @@ scenario, optional grounded-analysis run, approval policy, selected quote validi
 selected supplier status. Any material change marks the award stale; approval never mutates or
 issues a purchase order.
 
+The P7 order workflow revalidates that approved award and creates at most one PO for each selected
+supplier. Procurement may issue the initial version because award authorization already covers it.
+An amendment creates a new immutable revision; commercial changes pause in
+`pending_authorization` until independently authorized. Supplier acknowledgement records
+acceptance, rejection, or proposed changes but never rewrites PO terms.
+
+Receivers post partial or complete deliveries as accepted and rejected quantities. The PO is locked
+while cumulative delivery is checked, preventing concurrent over-receipt. Returns reduce net
+accepted fulfillment but remain independent records. Finance captures invoices and runs two-way
+(PO/invoice) or three-way (PO/accepted receipt/invoice) matching. The deterministic matcher records
+tolerances and blocking duplicate, currency, quantity, price, tax, freight, and arithmetic
+exceptions. After a clean match or documented resolution, finance approves a stable-reference
+sandbox export and records reconciliation.
+
 ## Required recovery behavior
 
 - Worker replay cannot duplicate finalized records or external actions.
