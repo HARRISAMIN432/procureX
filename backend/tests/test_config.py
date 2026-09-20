@@ -12,6 +12,8 @@ def test_local_settings_have_safe_defaults() -> None:
     assert "+asyncpg" not in settings.effective_langgraph_database_url
     assert settings.document_max_upload_bytes == 25 * 1024 * 1024
     assert settings.document_upload_intent_ttl_seconds == 600
+    assert settings.llm_provider == "gemini"
+    assert settings.llm_model == "gemini-3.1-pro-preview"
 
 
 def test_production_requires_cloudinary_credentials() -> None:

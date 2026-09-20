@@ -55,9 +55,19 @@ tenant constraints, permissions, and audit/outbox records. Quote versions retain
 document-version attachments; a check citation is accepted only when it resolves to a verified
 field in a completed extraction of an attached document. A tested `evaluation_graph` contract
 validates the evidence gate, interrupts on unresolved findings, and rejects stale-digest resumes.
-Formal waiver and independent-review workflows, risk signals, model-backed grounded narratives,
-production checkpoint/worker integration, allocation optimization, and award integration remain
-incomplete.
+Gemini 3.1 grounded narratives, authorized evidence retrieval, persisted analysis/model lifecycle,
+Celery worker execution, and PostgreSQL LangGraph checkpoints are implemented. Formal waiver and
+independent-review workflows, risk signals, allocation optimization, and award integration remain
+outside this P5 slice.
+
+The P6/AWD slice implements deterministic OR-Tools CP-SAT allocation scenarios over eligible,
+current quotes and approved suppliers. It supports capacity, minimum quantity, split-award,
+supplier-count, fixed-cost, and budget constraints; preserves honest optimal/feasible/infeasible
+status, bounds/gaps and actionable conflicts; and independently validates every feasible result.
+Immutable recommendation dossiers bind the evaluation, scenario, submissions, allocation, and
+approval-policy version. Human decisions require separate permission, enforce quorum and optional
+self-approval prohibition, and mark the recommendation stale when selected submissions, supplier
+eligibility, evaluation, or allocation sources change.
 
 The current backend foundation must provide:
 

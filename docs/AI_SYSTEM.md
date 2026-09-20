@@ -33,11 +33,13 @@ load immutable evaluation snapshot → retrieve authorized evidence
 → unresolved-finding interrupt → finalize analysis run
 ```
 
-The implemented graph contract gates finalization on validated citations, interrupts when findings
-remain unresolved, and rejects a resume when the immutable evaluation digest has changed. Evaluation
-snapshots now carry tenant-validated citations and a deterministic summary. Authorized retrieval,
-model-backed narrative generation, persisted analysis-run lifecycle handling, and production
-PostgreSQL checkpoint invocation remain pending.
+The production graph retrieves only tenant-owned, verified evidence from completed extractions of
+documents attached to the evaluated submissions. Gemini 3.1 Pro Preview produces a JSON-schema
+validated comparison narrative without changing deterministic prices, eligibility, scores, or
+rankings. Every generated claim carries evidence-anchor IDs; the graph rejects unknown citations
+and supplier narratives that cite another submission's evidence. It persists analysis-run and model
+invocation metadata, checkpoints execution in PostgreSQL, interrupts when findings remain
+unresolved, and rejects a resume when the immutable evaluation digest has changed.
 
 ## Execution contract
 
@@ -56,6 +58,17 @@ PostgreSQL checkpoint invocation remain pending.
 - Critical prices, quantities, currency, tax, and delivery basis require human verification.
 - Unsupported factual claims abstain or remain unresolved.
 - Tokens, time, retries, calls, and tenant cost have hard caps.
+
+## Provider and execution
+
+- Provider: Gemini through `langchain-google-genai`; default model
+  `gemini-3.1-pro-preview` with native JSON-schema output.
+- Durable queue boundary: Celery/RabbitMQ queue `ai.evaluations`, late acknowledgement, worker-loss
+  rejection, bounded retry, and idempotent database job/run records.
+- Checkpoints: `AsyncPostgresSaver` using the dedicated checkpoint database URL. Server-derived
+  thread IDs and checkpoint namespaces include the organization and analysis-run IDs.
+- Checkpoint state contains IDs, authorized anchor IDs, and derived structured output. Evidence text
+  is retrieved again under tenant RLS for each provider call and is not stored in graph state.
 
 ## Evaluation
 

@@ -53,8 +53,13 @@ class Settings(BaseSettings):
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")
 
     langgraph_checkpoint_database_url: SecretStr | None = None
-    llm_provider: str | None = None
-    llm_model: str | None = None
+    llm_provider: str = "gemini"
+    llm_model: str = "gemini-3.1-pro-preview"
+    gemini_api_key: SecretStr | None = None
+    llm_timeout_seconds: float = Field(default=90, gt=0, le=300)
+    llm_max_retries: int = Field(default=2, ge=0, le=5)
+    evaluation_evidence_limit: int = Field(default=120, gt=0, le=500)
+    evaluation_evidence_max_chars: int = Field(default=60_000, ge=1_000, le=500_000)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -85,6 +90,10 @@ class Settings(BaseSettings):
                 raise ValueError("Staging and production require PROCUREX_AUTH_MODE=oidc")
             if not self.oidc_issuer or not self.oidc_audience:
                 raise ValueError("Staging and production require OIDC issuer and audience")
+            if self.llm_provider != "gemini":
+                raise ValueError("Staging and production require PROCUREX_LLM_PROVIDER=gemini")
+            if self.gemini_api_key is None or not self.gemini_api_key.get_secret_value().strip():
+                raise ValueError("Staging and production require PROCUREX_GEMINI_API_KEY")
         return self
 
 

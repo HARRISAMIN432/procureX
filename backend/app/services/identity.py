@@ -66,6 +66,10 @@ PERMISSION_CATALOG: dict[str, str] = {
     "sourcing.clarifications.write": "Create and answer RFQ clarifications",
     "evaluations.read": "View requirement matrices and evaluated offer comparisons",
     "evaluations.run": "Create deterministic offer evaluation snapshots",
+    "allocations.run": "Run and compare deterministic allocation scenarios",
+    "awards.read": "View recommendation dossiers and award decisions",
+    "awards.write": "Prepare and submit immutable award recommendations",
+    "awards.approve": "Approve or reject award recommendations",
 }
 
 

@@ -53,7 +53,7 @@ def tenant_policy(table: str) -> None:
 
 def upgrade() -> None:
     op.drop_constraint(
-        "ck_document_versions_document_version_status",
+        op.f("ck_document_versions_document_version_status"),
         "document_versions",
         type_="check",
     )
@@ -191,7 +191,7 @@ def downgrade() -> None:
     op.drop_table("document_pages")
     op.drop_table("document_parses")
     op.drop_constraint(
-        "ck_document_versions_document_version_status",
+        op.f("ck_document_versions_document_version_status"),
         "document_versions",
         type_="check",
     )

@@ -4,6 +4,8 @@ from app import models  # noqa: F401
 from app.db.base import Base
 
 EXPECTED_TABLES = {
+    "allocation_scenarios",
+    "allocation_lines",
     "organizations",
     "users",
     "memberships",
@@ -41,6 +43,8 @@ EXPECTED_TABLES = {
     "approval_policies",
     "approval_requests",
     "approval_decisions",
+    "awards",
+    "award_decisions",
     "suppliers",
     "supplier_contacts",
     "supplier_qualifications",

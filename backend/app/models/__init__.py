@@ -7,6 +7,7 @@ from app.models.approvals import (
     BudgetLedgerEntry,
     BudgetReservation,
 )
+from app.models.awards import AllocationLine, AllocationScenario, Award, AwardDecision
 from app.models.documents import (
     CloudinaryAsset,
     Document,
@@ -59,10 +60,14 @@ from app.models.suppliers import (
 
 __all__ = [
     "AnalysisRun",
+    "AllocationLine",
+    "AllocationScenario",
     "ApprovalDecision",
     "ApprovalPolicy",
     "ApprovalRequest",
     "AuditEvent",
+    "Award",
+    "AwardDecision",
     "CloudinaryAsset",
     "Budget",
     "BudgetLedgerEntry",

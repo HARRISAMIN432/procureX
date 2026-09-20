@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.models.ai import AnalysisRunStatus
 from app.models.evaluations import EvaluationStatus, OfferEligibility, RequirementOutcome
 
 
@@ -99,3 +100,30 @@ class EvaluationRead(BaseModel):
     summary: dict[str, object]
     created_at: datetime
     offers: list[OfferEvaluationRead]
+
+
+class AnalysisRunRead(BaseModel):
+    id: UUID
+    evaluation_id: UUID
+    graph_name: str
+    graph_version: str
+    thread_id: str
+    source_digest: str
+    status: AnalysisRunStatus
+    output: dict[str, object] | None
+    error_code: str | None
+    error_detail: str | None
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+
+
+class AnalysisResume(BaseModel):
+    source_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    review_complete: bool
+
+    @model_validator(mode="after")
+    def review_must_be_complete(self) -> "AnalysisResume":
+        if not self.review_complete:
+            raise ValueError("review_complete must be true")
+        return self

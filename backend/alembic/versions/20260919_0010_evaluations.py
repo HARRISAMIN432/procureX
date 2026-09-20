@@ -35,6 +35,11 @@ def tenant_policy(table: str) -> None:
 
 
 def upgrade() -> None:
+    op.create_unique_constraint(
+        "uq_rfq_requirements_parent_id",
+        "rfq_requirements",
+        ["organization_id", "rfq_id", "id"],
+    )
     op.create_table(
         "evaluations",
         uuid_pk(),
@@ -240,3 +245,6 @@ def downgrade() -> None:
     )
     for table in ("requirement_checks", "offer_evaluations", "evaluations"):
         op.drop_table(table)
+    op.drop_constraint(
+        "uq_rfq_requirements_parent_id", "rfq_requirements", type_="unique"
+    )

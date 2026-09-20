@@ -94,7 +94,29 @@ The first P5 evaluation slice is available through `/api/v1/rfqs/{id}/evaluation
 mandatory criteria, calculates exact landed costs and deterministic weighted scores, and preserves
 each comparison as an immutable digest-bearing version. Quote submissions can bind immutable
 document versions; evaluation citations must resolve to verified fields from completed extractions
-of those documents. Snapshots include a deterministic summary, and the tested `evaluation_graph`
-pauses on unresolved findings and rejects stale resumes. Requirement outcomes remain reviewer
-inputs; model-backed narratives and production checkpoint/worker integration remain follow-on P5
-work.
+of those documents. A Celery-backed `evaluation_graph` now retrieves only authorized verified
+evidence, generates a structured citation-grounded comparison with `gemini-3.1-pro-preview`,
+validates every citation, persists invocation/run metadata, checkpoints in PostgreSQL, pauses on
+unresolved findings, and rejects stale resumes. Requirement outcomes and all commercial arithmetic
+remain reviewer/deterministic inputs.
+
+Configure `PROCUREX_GEMINI_API_KEY`, then run the evaluation worker with:
+
+```bash
+uv run celery -A app.workers.celery_app:celery_app worker \
+  --queues ai.evaluations --loglevel INFO
+```
+
+The worker initializes the LangGraph checkpoint schema idempotently using
+`PROCUREX_LANGGRAPH_CHECKPOINT_DATABASE_URL`. Start a run through
+`POST /api/v1/evaluations/{evaluation_id}/analysis-runs` and poll it through
+`GET /api/v1/evaluation-analysis-runs/{analysis_run_id}`. If its status is `awaiting_review`, resume
+it with the source digest returned on the run.
+
+P6 allocation and award APIs use OR-Tools CP-SAT with integer-scaled quantities and money. Scenarios
+preserve constraints, solver status, objective/bound/gap, infeasibility diagnostics, independent
+constraint checks, and immutable digests. Validated feasible scenarios can become recommendation
+dossiers governed by the existing versioned approval policies. Quorum decisions are append-only,
+self-approval policy is enforced, and changed evaluation, allocation, grounded analysis, approval
+policy, selected quote, or supplier inputs mark an award stale before authorization. P6 approves an
+award snapshot only; PO issuance remains P7.

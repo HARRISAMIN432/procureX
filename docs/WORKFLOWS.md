@@ -90,11 +90,22 @@ mandatory criteria block scoring. Exact decimal landed cost and a declared price
 weighting produce scores only for eligible offers. Quote attachments bind immutable document
 versions to the submission. Optional check citations must traverse that binding to a verified field
 in a completed extraction. The service persists the normalized comparison, deterministic summary,
-and digest as a new immutable version and emits audit/outbox evidence. The `evaluation_graph`
-validates the citation gate, interrupts on unresolved findings, and rejects a resume carrying a
-different source digest. Outcomes are still entered by an authorized reviewer; formal waivers,
-independent reviews, model-backed narrative summaries, and production checkpoint invocation remain
-before the broader P5 workflow is complete.
+and digest as a new immutable version and emits audit/outbox evidence. An authorized user can queue
+an `evaluation_graph` analysis run. Its Celery worker retrieves only verified evidence attached to
+the evaluated submissions, asks Gemini 3.1 for a typed narrative, rejects missing, invented, or
+cross-submission citations, and checkpoints each step in PostgreSQL. The graph interrupts on
+unresolved findings and resumes the same durable thread only when the immutable source digest still
+matches. Outcomes remain authorized reviewer inputs; the model cannot alter arithmetic, eligibility,
+scores, rankings, approvals, or awards.
+
+The P6 workflow creates one immutable allocation scenario per constraint set. It filters to eligible
+offers with current submitted quotes and approved suppliers, runs CP-SAT, records solver status and
+diagnostics, and independently rechecks demand, capacities, minimums, split policy, supplier limit,
+and budget. Procurement may turn a validated feasible scenario into a recommendation dossier bound
+to an active versioned approval policy. Submission and every decision revalidate the evaluation,
+scenario, optional grounded-analysis run, approval policy, selected quote validity/digests, and
+selected supplier status. Any material change marks the award stale; approval never mutates or
+issues a purchase order.
 
 ## Required recovery behavior
 

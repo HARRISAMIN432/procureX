@@ -22,8 +22,9 @@ SQLAlchemy uses an `asyncpg` URL; LangGraph's PostgreSQL checkpointer receives a
 | Suppliers | `suppliers`, `supplier_contacts`, `supplier_qualifications`, `supplier_certificates` |
 | Sourcing | `rfqs`, `rfq_items`, `rfq_requirements`, `rfq_revisions`, `rfq_invitations`, `quote_submissions`, `quote_lines`, `quote_submission_documents`, `rfq_clarifications` |
 | Evaluation | `evaluations`, `offer_evaluations`, `requirement_checks`, `requirement_check_evidence` |
+| Allocation and awards | `allocation_scenarios`, `allocation_lines`, `awards`, `award_decisions` |
 
-Later migrations add optimization, order, and finance aggregates
+Later migrations add order and finance aggregates
 described in [DOMAIN.md](DOMAIN.md).
 
 Budget balances are derived from an append-only four-bucket ledger: available, reserved,
@@ -53,6 +54,12 @@ anchors, while application validation additionally requires the anchor's field t
 its extraction completed, and its document attached to the assessed quote. Tenant-qualified
 foreign keys prevent an evaluation from mixing RFQs, submissions, suppliers, requirements, or
 evidence across ownership boundaries.
+
+An `allocation_scenario` is an immutable solver run bound to one evaluation digest and one exact
+constraint set. Its lines preserve selected submission, supplier, RFQ item, quantity, normalized
+unit cost, and extended cost. An `award` binds one independently validated feasible scenario to an
+immutable recommendation dossier and approval-policy snapshot. `award_decisions` are append-only
+and unique per approver and award; changed selected-source inputs move a pending award to `stale`.
 
 ## Tenant isolation
 

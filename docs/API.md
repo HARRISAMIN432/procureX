@@ -169,6 +169,9 @@ production PostgreSQL checkpoint wiring, and an extraction worker remain P4 inte
 |---|---|---|
 | `POST /api/v1/rfqs/{id}/evaluations` | `evaluations.run` | Validate a complete requirement matrix and create an immutable deterministic comparison snapshot |
 | `GET /api/v1/evaluations/{id}` | `evaluations.read` | Return evaluated offers, requirement outcomes, eligibility, landed costs, and scores |
+| `POST /api/v1/evaluations/{id}/analysis-runs` | `evaluations.run` | Idempotently queue a Gemini-grounded comparison run |
+| `GET /api/v1/evaluation-analysis-runs/{id}` | `evaluations.read` | Return durable run status, validated narrative, citations, and failure metadata |
+| `POST /api/v1/evaluation-analysis-runs/{id}/resume` | `evaluations.run` | Resume a digest-bound PostgreSQL-checkpointed thread after review |
 
 Evaluation requires every current submitted quote version and exactly one
 `pass`/`fail`/`unknown`/`not_applicable` outcome per RFQ requirement. Mandatory failures make an
@@ -181,9 +184,32 @@ resolve through the assessed quote's immutable document attachment to a verified
 completed extraction. Responses include those anchor IDs and a deterministic summary of counts,
 the leading eligible submission, and the cited evidence set.
 
-Requirement outcomes and rationales remain controlled reviewer inputs. Model-backed narrative
-generation, formal waivers, independent-review disagreement handling, and production graph
-worker/checkpoint integration remain follow-on P5 work.
+Requirement outcomes and rationales remain controlled reviewer inputs. Gemini receives the
+immutable deterministic snapshot plus only tenant-authorized verified evidence. Native structured
+output is application-validated, and every generated claim must cite a supplied anchor; supplier
+narratives cannot cite another submission's evidence. Celery/RabbitMQ executes the graph with
+bounded retry and PostgreSQL checkpoints. Formal waivers and independent-review disagreement
+handling remain follow-on work.
+
+## Implemented allocation and award endpoints
+
+| Endpoint | Permission | Behavior |
+|---|---|---|
+| `POST /api/v1/evaluations/{id}/allocation-scenarios` | `allocations.run` | Solve and independently validate an immutable constrained-allocation scenario |
+| `GET /api/v1/evaluations/{id}/allocation-scenarios` | `evaluations.read` | Compare scenario status, objective, bound/gap, constraints, conflicts, and allocations |
+| `POST /api/v1/allocation-scenarios/{id}/awards` | `awards.write` | Build an immutable recommendation dossier bound to an active approval policy |
+| `GET /api/v1/awards/{id}` | `awards.read` | Read the dossier, exact snapshot, status, quorum, and decisions |
+| `POST /api/v1/awards/{id}/submit` | `awards.write` | Submit the exact digest for human approval after revalidating its sources |
+| `POST /api/v1/awards/{id}/approve` | `awards.approve` | Add one quorum decision; only the exact current snapshot can become approved |
+| `POST /api/v1/awards/{id}/reject` | `awards.approve` | Reject the exact pending recommendation with an auditable decision |
+
+CP-SAT uses scaled integers for quantities and money, a deterministic single-worker search, and a
+30-second maximum caller-configurable time budget. A feasible timeout is labeled `feasible`, never
+`optimal`. Infeasible scenarios persist diagnostics rather than silently weakening constraints.
+Awards can originate only from independently validated feasible scenarios. Approval policy rules
+and versions are copied into the dossier; expired quotes, changed policies, stale grounded
+analyses, and other material source changes persist a `stale` award rather than accepting another
+decision.
 
 ## Events
 

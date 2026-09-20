@@ -159,6 +159,7 @@ class RfqRequirement(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             ["requisition_requirements.organization_id", "requisition_requirements.id"],
             ondelete="RESTRICT",
         ),
+        UniqueConstraint("organization_id", "rfq_id", "id"),
         UniqueConstraint("organization_id", "id"),
     )
 

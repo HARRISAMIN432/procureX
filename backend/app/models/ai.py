@@ -57,6 +57,11 @@ class AnalysisRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             ["document_versions.organization_id", "document_versions.id"],
             ondelete="RESTRICT",
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "evaluation_id"],
+            ["evaluations.organization_id", "evaluations.id"],
+            ondelete="RESTRICT",
+        ),
         UniqueConstraint("organization_id", "thread_id"),
         UniqueConstraint("organization_id", "id"),
     )
@@ -68,6 +73,7 @@ class AnalysisRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     graph_version: Mapped[str] = mapped_column(String(80), nullable=False)
     thread_id: Mapped[str] = mapped_column(String(255), nullable=False)
     document_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    evaluation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     source_digest: Mapped[str] = mapped_column(String(128), nullable=False)
     status: Mapped[AnalysisRunStatus] = mapped_column(
         enum_type(AnalysisRunStatus, "analysis_run_status"),
