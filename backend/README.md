@@ -103,7 +103,18 @@ Clean, verified document versions can be downloaded through a tenant-authorized 
 returns an audited, short-lived authenticated Cloudinary URL. Quarantined and unsafe asset states
 fail closed.
 
-Clean scans now enqueue an idempotent parse job. Native/OCR/hybrid workers can record digest-bound,
+Upload completion dispatches the scan job to `documents.security`. The worker independently
+downloads the signed asset without redirects, verifies its exact byte count and SHA-256, and then
+runs ClamAV under a timeout. Integrity and scanner failures remain quarantined and retry at most
+three total attempts; only explicit clean/infected verdicts change asset state. Run it with a
+current ClamAV signature database mounted or installed in the worker image:
+
+```bash
+uv run celery -A app.workers.celery_app:celery_app worker \
+  --queues documents.security --loglevel INFO
+```
+
+Clean scans then enqueue an idempotent parse job. Native/OCR/hybrid workers can record digest-bound,
 replay-safe attempts with ordered page text and tables; a successful attempt advances the immutable
 document version to `parsed`. Parser execution and structured extraction remain subsequent P4 work.
 

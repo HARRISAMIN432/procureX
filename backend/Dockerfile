@@ -16,7 +16,11 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-RUN addgroup --system procurex && adduser --system --ingroup procurex procurex
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends ca-certificates clamav \
+    && rm -rf /var/lib/apt/lists/* \
+    && addgroup --system procurex \
+    && adduser --system --ingroup procurex procurex
 WORKDIR /app
 COPY --from=builder --chown=procurex:procurex /build/.venv ./.venv
 COPY --from=builder --chown=procurex:procurex /build/app ./app
