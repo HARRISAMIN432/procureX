@@ -100,6 +100,13 @@ def within_tolerance(
     return abs(actual - expected) <= permitted
 
 
+def receipt_return_status(accepted: Decimal, returned: Decimal) -> ReceiptStatus:
+    """Derive the status of a whole receipt, not only the line just returned."""
+    if returned >= accepted:
+        return ReceiptStatus.FULLY_RETURNED
+    return ReceiptStatus.RETURNED_IN_PART
+
+
 def _event(
     context: RequestContext,
     action: str,
@@ -668,6 +675,13 @@ async def create_receipt(
     }:
         raise OperationsConflictError("Purchase order is not open for receipts")
     current = await _current_po_version(context, po)
+    if current.acknowledgement in {
+        SupplierAcknowledgement.REJECTED,
+        SupplierAcknowledgement.CHANGES_PROPOSED,
+    }:
+        raise OperationsConflictError(
+            "Purchase order cannot receive goods while the supplier response is unresolved"
+        )
     current_lines = await _po_lines(context, current.id)
     line_by_id = {line.id: line for line in current_lines}
     if any(item.purchase_order_line_id not in line_by_id for item in payload.lines):
@@ -798,7 +812,9 @@ async def _refresh_po_receipt_status(
         po.status = PurchaseOrderStatus.RECEIVED
     elif any(value > 0 for value in net.values()):
         po.status = PurchaseOrderStatus.PARTIALLY_RECEIVED
-    elif po.acknowledged_at is not None:
+    elif (
+        await _current_po_version(context, po)
+    ).acknowledgement is SupplierAcknowledgement.ACCEPTED:
         po.status = PurchaseOrderStatus.ACKNOWLEDGED
     else:
         po.status = PurchaseOrderStatus.ISSUED
@@ -917,11 +933,27 @@ async def create_return(
     if receipt is None:
         raise OperationsConflictError("Receipt is missing")
     receipt.version += 1
-    total_after = Decimal(str(already_returned or 0)) + payload.quantity
-    receipt.status = (
-        ReceiptStatus.FULLY_RETURNED
-        if total_after == line.accepted_quantity
-        else ReceiptStatus.RETURNED_IN_PART
+    await context.session.flush()
+    accepted_total = await context.session.scalar(
+        select(func.coalesce(func.sum(DeliveryReceiptLine.accepted_quantity), 0)).where(
+            DeliveryReceiptLine.organization_id == context.organization_id,
+            DeliveryReceiptLine.receipt_id == receipt.id,
+        )
+    )
+    returned_total = await context.session.scalar(
+        select(func.coalesce(func.sum(ReceiptReturn.quantity), 0))
+        .join(
+            DeliveryReceiptLine,
+            (DeliveryReceiptLine.organization_id == ReceiptReturn.organization_id)
+            & (DeliveryReceiptLine.id == ReceiptReturn.receipt_line_id),
+        )
+        .where(
+            ReceiptReturn.organization_id == context.organization_id,
+            DeliveryReceiptLine.receipt_id == receipt.id,
+        )
+    )
+    receipt.status = receipt_return_status(
+        Decimal(str(accepted_total or 0)), Decimal(str(returned_total or 0))
     )
     po = await context.session.scalar(
         select(PurchaseOrder)
@@ -1025,6 +1057,13 @@ async def capture_invoice(
     }:
         raise OperationsConflictError("Purchase order is not open for invoices")
     current = await _current_po_version(context, po)
+    if current.acknowledgement in {
+        SupplierAcknowledgement.REJECTED,
+        SupplierAcknowledgement.CHANGES_PROPOSED,
+    }:
+        raise OperationsConflictError(
+            "Purchase order cannot accept invoices while the supplier response is unresolved"
+        )
     line_by_id = {line.id: line for line in await _po_lines(context, current.id)}
     if any(item.purchase_order_line_id not in line_by_id for item in payload.lines):
         raise OperationsValidationError("Invoice lines must belong to the current PO version")

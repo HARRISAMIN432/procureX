@@ -69,6 +69,13 @@ approval-policy version. Human decisions require separate permission, enforce qu
 self-approval prohibition, and mark the recommendation stale when selected submissions, supplier
 eligibility, evaluation, or allocation sources change.
 
+The P7 order-operations slice implements idempotent PO creation from current approved awards,
+versioned amendments with renewed authorization for material changes, issue and supplier-response
+recording, partial receipts and returns, duplicate-aware invoice capture, two- and three-way
+matching with blocking exception resolution, and idempotent sandbox accounting export and
+reconciliation. Order, invoice, and accounting permissions are included in new-organization
+bootstrap; rejected or change-requested POs cannot proceed to receipt or invoice processing.
+
 The current backend foundation must provide:
 
 - validated environment configuration with no committed secrets;

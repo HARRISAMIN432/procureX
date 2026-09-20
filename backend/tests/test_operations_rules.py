@@ -9,14 +9,19 @@ from pydantic import ValidationError
 
 from app.auth.context import RequestContext, get_request_context
 from app.main import app
-from app.models.operations import ReconciliationStatus
+from app.models.operations import ReceiptStatus, ReconciliationStatus
 from app.schemas.operations import (
     AccountingReconcile,
     InvoiceCapture,
     PurchaseOrderAmend,
     ReceiptCreate,
 )
-from app.services.operations import digest, normalized_invoice_number, within_tolerance
+from app.services.operations import (
+    digest,
+    normalized_invoice_number,
+    receipt_return_status,
+    within_tolerance,
+)
 
 
 def test_invoice_number_normalization_supports_duplicate_detection() -> None:
@@ -31,6 +36,11 @@ def test_matching_tolerance_uses_larger_absolute_or_percentage_limit() -> None:
 
 def test_matching_digest_is_deterministic() -> None:
     assert digest({"invoice": "1", "lines": [1, 2]}) == digest({"lines": [1, 2], "invoice": "1"})
+
+
+def test_receipt_is_fully_returned_only_when_all_accepted_goods_are_returned() -> None:
+    assert receipt_return_status(Decimal("5"), Decimal("2")) is ReceiptStatus.RETURNED_IN_PART
+    assert receipt_return_status(Decimal("5"), Decimal("5")) is ReceiptStatus.FULLY_RETURNED
 
 
 def test_receipt_rejects_empty_delivered_quantity() -> None:

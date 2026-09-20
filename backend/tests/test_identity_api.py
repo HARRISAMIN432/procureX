@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from app.core.config import Settings
 from app.main import app
 from app.schemas.identity import OrganizationBootstrapRequest, OrganizationSettingsWrite
-from app.services.identity import BootstrapDeniedError, verify_bootstrap_key
+from app.services.identity import PERMISSION_CATALOG, BootstrapDeniedError, verify_bootstrap_key
 
 
 def test_identity_routes_are_in_openapi() -> None:
@@ -71,6 +71,23 @@ def test_bootstrap_key_uses_configured_secret() -> None:
     verify_bootstrap_key(settings, "expected")
     with pytest.raises(BootstrapDeniedError):
         verify_bootstrap_key(settings, "wrong")
+
+
+def test_bootstrap_catalog_includes_order_operations_permissions() -> None:
+    assert {
+        "orders.read",
+        "orders.write",
+        "orders.approve",
+        "orders.issue",
+        "orders.acknowledge",
+        "orders.receive",
+        "invoices.read",
+        "invoices.write",
+        "invoices.match",
+        "invoices.approve",
+        "accounting.export",
+        "accounting.reconcile",
+    } <= PERMISSION_CATALOG.keys()
 
 
 def test_settings_effective_time_requires_timezone() -> None:

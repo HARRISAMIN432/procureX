@@ -370,12 +370,63 @@ async def test_complete_order_operations_and_failure_paths() -> None:
                     expected_content_digest=authorized.content_digest,
                 ),
             )
-            acknowledged = await acknowledge_purchase_order(
+            rejected = await acknowledge_purchase_order(
                 approver,
                 po.id,
                 PurchaseOrderAcknowledge(
                     expected_version=issued.version,
                     expected_content_digest=issued.content_digest,
+                    acknowledgement="rejected",
+                    note="Commercial terms need correction",
+                ),
+            )
+            rejected_line = rejected.current.lines[0]
+            with pytest.raises(OperationsConflictError, match="supplier response"):
+                await create_receipt(
+                    buyer,
+                    po.id,
+                    ReceiptCreate(
+                        expected_po_version=rejected.version,
+                        idempotency_key="receipt-rejected-po-0001",
+                        received_at=datetime.now(UTC),
+                        lines=[
+                            {
+                                "purchase_order_line_id": rejected_line.id,
+                                "accepted_quantity": "1",
+                                "rejected_quantity": "0",
+                            }
+                        ],
+                    ),
+                )
+            with pytest.raises(OperationsConflictError, match="supplier response"):
+                await capture_invoice(
+                    buyer,
+                    po.id,
+                    InvoiceCapture(
+                        supplier_invoice_number="INV-REJECTED-PO",
+                        invoice_date=date.today(),
+                        currency="PKR",
+                        subtotal="100",
+                        tax_amount="0",
+                        freight_amount="0",
+                        total_amount="100",
+                        idempotency_key="invoice-rejected-po-0001",
+                        lines=[
+                            {
+                                "purchase_order_line_id": rejected_line.id,
+                                "description": "Must not be accepted",
+                                "quantity": "1",
+                                "unit_price": "100",
+                            }
+                        ],
+                    ),
+                )
+            acknowledged = await acknowledge_purchase_order(
+                approver,
+                po.id,
+                PurchaseOrderAcknowledge(
+                    expected_version=rejected.version,
+                    expected_content_digest=rejected.content_digest,
                     acknowledgement="accepted",
                 ),
             )

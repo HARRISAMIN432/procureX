@@ -70,6 +70,18 @@ PERMISSION_CATALOG: dict[str, str] = {
     "awards.read": "View recommendation dossiers and award decisions",
     "awards.write": "Prepare and submit immutable award recommendations",
     "awards.approve": "Approve or reject award recommendations",
+    "orders.read": "View purchase orders and delivery history",
+    "orders.write": "Create and amend purchase orders",
+    "orders.approve": "Authorize material purchase-order amendments",
+    "orders.issue": "Issue authorized purchase orders",
+    "orders.acknowledge": "Record supplier purchase-order responses",
+    "orders.receive": "Record deliveries, inspections, and returns",
+    "invoices.read": "View supplier invoices and matching results",
+    "invoices.write": "Capture supplier invoices",
+    "invoices.match": "Run matching and resolve matching exceptions",
+    "invoices.approve": "Approve matched invoices for export",
+    "accounting.export": "Export approved invoices to accounting",
+    "accounting.reconcile": "Record accounting reconciliation results",
 }
 
 
