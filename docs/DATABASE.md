@@ -87,6 +87,16 @@ after tenant context is established.
 5. Add constraints before relying on an invariant in application code.
 6. Include RLS policy changes and downgrade implications in review.
 
+## Backup and restore drills
+
+The non-production administrative CLI creates PostgreSQL custom archives with a separate
+SHA-256/size manifest, private file permissions, and no credentials in command arguments or output.
+Restore verifies the manifest and archive listing before using one transaction against an
+explicitly confirmed empty target; it never uses `--clean` or `--create`. The tool fails closed in
+production, where managed encrypted backups and point-in-time recovery must be selected and
+rehearsed. Database recovery does not cover Cloudinary or external-provider state. See the
+[database backup/restore runbook](runbooks/database-backup-restore.md).
+
 ## Cloudinary metadata
 
 `cloudinary_assets` stores stable provider identifiers and metadata, not delivery URLs. Assets must

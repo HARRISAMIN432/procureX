@@ -85,6 +85,9 @@ process restart decisions.
 Request completion telemetry now correlates method, path, status, safe exception class, and latency
 without logging query strings or payloads. Slow requests and server failures are elevated, clients
 receive sanitized correlated errors, and an operational triage/drill runbook defines evidence.
+Non-production database recovery drills now use checksum-manifested private archives, sanitized
+tool failures, archive preflight, single-transaction restore, and explicit empty-target
+confirmation. Production managed backups and Cloudinary recovery remain release-gate work.
 
 The current backend foundation must provide:
 

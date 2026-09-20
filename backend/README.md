@@ -38,6 +38,11 @@ Every request returns `Server-Timing` and writes safe request-ID-correlated comp
 Requests over `PROCUREX_SLOW_REQUEST_THRESHOLD_MS` and all server errors are warnings. See the
 [API latency/error runbook](../docs/runbooks/api-latency-and-errors.md) for triage and measurement.
 
+Non-production database recovery drills use `python -m app.admin.database_backup`. The tool creates
+a private PostgreSQL custom archive with an integrity manifest and restores only into an explicitly
+confirmed empty target. Read the [backup/restore runbook](../docs/runbooks/database-backup-restore.md)
+before use; production and Cloudinary recovery require separate provider procedures.
+
 Application transactions that access tenant-owned tables must use
 `tenant_transaction(organization_id)` or set the equivalent transaction-local PostgreSQL
 context. Never accept the organization ID directly from an unauthenticated request body.

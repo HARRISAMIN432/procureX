@@ -7,4 +7,6 @@ __pycache__/
 *.py[cod]
 .coverage
 htmlcov/
-
+backups/
+*.dump
+*.manifest.json
