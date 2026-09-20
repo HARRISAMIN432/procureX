@@ -7,6 +7,7 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.oidc import OIDCAuthenticationError, authenticate_bearer_token
 from app.core.config import AuthMode, Settings, get_settings
 from app.core.database import SessionFactory
 from app.models.identity import (
@@ -15,6 +16,8 @@ from app.models.identity import (
     MembershipStatus,
     Permission,
     RolePermission,
+    User,
+    UserStatus,
 )
 
 
@@ -31,23 +34,52 @@ async def get_request_context(
     settings: Annotated[Settings, Depends(get_settings)],
     organization_id: Annotated[UUID | None, Header(alias="X-Organization-ID")] = None,
     user_id: Annotated[UUID | None, Header(alias="X-User-ID")] = None,
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
 ) -> AsyncIterator[RequestContext]:
     """Resolve a principal and hold one transaction with its tenant RLS context."""
-    if settings.auth_mode is not AuthMode.DEV_HEADERS:
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail={"code": "oidc_adapter_not_configured", "message": "OIDC adapter is pending"},
-        )
-    if organization_id is None or user_id is None:
+    if organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
-                "code": "development_identity_required",
-                "message": "X-Organization-ID and X-User-ID are required in local mode",
+                "code": "organization_context_required",
+                "message": "X-Organization-ID is required",
             },
         )
 
     async with SessionFactory() as session, session.begin():
+        if settings.auth_mode is AuthMode.DEV_HEADERS:
+            if user_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail={
+                        "code": "development_identity_required",
+                        "message": "X-User-ID is required in local mode",
+                    },
+                )
+        else:
+            try:
+                principal = await authenticate_bearer_token(settings, authorization)
+            except OIDCAuthenticationError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail={"code": "invalid_bearer_token", "message": str(exc)},
+                    headers={"WWW-Authenticate": "Bearer"},
+                ) from exc
+            user_id = await session.scalar(
+                select(User.id).where(
+                    User.external_subject == principal.subject,
+                    User.status == UserStatus.ACTIVE,
+                )
+            )
+            if user_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        "code": "principal_not_provisioned",
+                        "message": "Authenticated principal has no active ProcureX user",
+                    },
+                )
+        assert user_id is not None
         await session.execute(
             text("SELECT set_config('app.current_organization_id', :organization_id, true)"),
             {"organization_id": str(organization_id)},

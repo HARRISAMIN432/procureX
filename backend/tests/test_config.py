@@ -71,6 +71,7 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
         "auth_mode": AuthMode.OIDC,
         "oidc_issuer": "https://identity.example.com",
         "oidc_audience": "procurex-api",
+        "oidc_jwks_url": "https://identity.example.com/.well-known/jwks.json",
         "cloudinary_cloud_name": "procurex",
         "cloudinary_api_key": "key",
         "cloudinary_api_secret": "secret",
@@ -94,6 +95,9 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
         ({"cors_allowed_origins": ["*"]}, "CORS origins"),
         ({"cors_allowed_origins": ["http://app.procurex.example"]}, "HTTPS origins"),
         ({"cors_allowed_origins": ["https://app.procurex.example/path"]}, "HTTPS origins"),
+        ({"oidc_jwks_url": None}, "JWKS URL"),
+        ({"oidc_jwks_url": "http://identity.example.com/jwks"}, "HTTPS OIDC JWKS"),
+        ({"oidc_algorithms": ["HS256"]}, "asymmetric"),
     ],
 )
 def test_deployed_settings_reject_unsafe_http_edge_configuration(

@@ -88,6 +88,13 @@ receive sanitized correlated errors, and an operational triage/drill runbook def
 Non-production database recovery drills now use checksum-manifested private archives, sanitized
 tool failures, archive preflight, single-transaction restore, and explicit empty-target
 confirmation. Production managed backups and Cloudinary recovery remain release-gate work.
+Provider-neutral OIDC bearer verification now validates cached JWKS signatures and required
+issuer/audience/time/subject claims using pinned asymmetric algorithms, then resolves only an
+active pre-provisioned user and active membership before establishing tenant context.
+
+P8 exit status and evidence are tracked in [`release-evidence/P8_EXIT.md`](release-evidence/P8_EXIT.md).
+P8 is not complete while that matrix contains blocked gates; repository controls, draft runbooks,
+or synthetic benchmarks do not replace staging drills, accessible UI evidence, and pilot acceptance.
 
 The current backend foundation must provide:
 

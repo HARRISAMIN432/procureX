@@ -68,6 +68,11 @@ Use the returned `organization_id` and `user_id` as `X-Organization-ID` and `X-U
 for local authenticated requests. Staging and production configuration rejects this mechanism and
 requires OIDC mode.
 
+For deployed OIDC, configure `PROCUREX_OIDC_ISSUER`, `PROCUREX_OIDC_AUDIENCE`, and the provider's
+HTTPS `PROCUREX_OIDC_JWKS_URL`. Bearer subjects must already exist in `users.external_subject` and
+hold an active membership in the selected `X-Organization-ID`; token claims never auto-provision
+access. Only configured asymmetric signature algorithms are accepted.
+
 Implemented organization endpoints are documented in
 [`../docs/API.md`](../docs/API.md#implemented-identity-endpoints).
 
@@ -153,3 +158,15 @@ Run the PostgreSQL P7 integration scenario against a migrated test database with
 PROCUREX_TEST_DATABASE_URL=postgresql+asyncpg://procurex:procurex@localhost:5432/procurex \
   uv run pytest tests/test_order_operations_integration.py
 ```
+
+Run the deterministic allocation benchmark with:
+
+```bash
+uv run python -m app.admin.performance_benchmark \
+  --items 100 --suppliers 50 --repetitions 5 --maximum-p95-ms 30000
+```
+
+The repository CI migrates a PostgreSQL 17 service as the schema owner, grants a separate
+`NOSUPERUSER NOBYPASSRLS` runtime role, runs the complete suite (including the normally skipped
+integration scenario), audits locked dependencies, and builds the non-root production container.
+Hosted CI success is required evidence; the workflow file alone is not a passing release gate.

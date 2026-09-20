@@ -134,6 +134,7 @@ def test_local_archive_tool_is_disabled_in_production(tmp_path: Path) -> None:
         auth_mode=AuthMode.OIDC,
         oidc_issuer="https://identity.example.com",
         oidc_audience="procurex-api",
+        oidc_jwks_url="https://identity.example.com/.well-known/jwks.json",
         cloudinary_cloud_name="procurex",
         cloudinary_api_key="key",
         cloudinary_api_secret="secret",

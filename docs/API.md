@@ -52,9 +52,12 @@ dependency checks, preventing a database outage from turning into a process rest
 | `GET /api/v1/organizations/current/settings` | `organization.settings.read` |
 | `PUT /api/v1/organizations/current/settings` | `organization.settings.write` |
 
-Until an OIDC provider is selected, local requests identify their development principal with
-`X-Organization-ID` and `X-User-ID`. Configuration rejects this auth mode in staging and
-production; the headers are not a production authentication mechanism.
+Local requests may identify their development principal with `X-Organization-ID` and
+`X-User-ID`. Staging and production require `Authorization: Bearer ...` plus the explicitly
+selected `X-Organization-ID`; the bearer subject maps only to a pre-provisioned active user and
+that user must have an active membership in the selected organization. Configuration pins the
+HTTPS issuer/JWKS URL, audience, asymmetric algorithms, clock skew, and JWKS timeout. Development
+identity headers are not a production authentication mechanism.
 
 ## Implemented requisition endpoints
 

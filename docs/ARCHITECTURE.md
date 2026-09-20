@@ -62,3 +62,10 @@ backend/
 - LangGraph checkpoints execution state, not approvals or authoritative documents.
 - Provider SDK types stop at adapters and do not leak into domain objects.
 
+## Build and verification boundary
+
+The backend container is built from the locked dependency graph and runs as a non-root user. CI
+applies migrations as a schema owner, then runs the application/integration suite through a
+separate PostgreSQL role with `NOSUPERUSER` and `NOBYPASSRLS`; tests performed only as the database
+owner do not constitute tenant-isolation evidence. The container does not embed environment files,
+tests, backup artifacts, or provider credentials.

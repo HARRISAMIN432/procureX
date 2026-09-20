@@ -62,6 +62,18 @@ Development header authentication is explicitly limited to local/test configurat
 production configuration requires OIDC mode, issuer, and audience, and must not start with the
 development header mechanism enabled.
 
+OIDC bearer authentication validates the token signature through the configured HTTPS JWKS URL,
+pins an allowlist of asymmetric algorithms, and requires issuer, audience, subject, issued-at, and
+expiry claims with bounded clock skew. JWKS retrieval is cached and executed off the async request
+loop with a bounded timeout. The verified provider subject maps to a pre-provisioned active user;
+the separately supplied organization context must resolve to an active membership before tenant
+RLS context and permissions are established. Unknown, disabled, expired, incorrectly signed, or
+wrong-audience principals fail closed. ProcureX does not auto-provision users from token claims.
+The implementation follows the provider JWKS mechanism in
+[OpenID Connect Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html) and pins the
+issuer/audience/algorithm checks supported by
+[PyJWT](https://pyjwt.readthedocs.io/en/latest/usage.html).
+
 The P8 HTTP-edge baseline rejects untrusted `Host` headers, allows browser cross-origin requests
 only from configured exact origins, and fails deployed configuration when hosts/origins are empty
 or wildcarded. Deployed browser origins must use HTTPS; debug and SQL statement logging are

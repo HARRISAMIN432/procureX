@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     dev_bootstrap_key: SecretStr = SecretStr("local-development-only")
     oidc_issuer: str | None = None
     oidc_audience: str | None = None
+    oidc_jwks_url: str | None = None
+    oidc_algorithms: list[str] = Field(default_factory=lambda: ["RS256"])
+    oidc_clock_skew_seconds: int = Field(default=30, ge=0, le=300)
+    oidc_jwks_timeout_seconds: float = Field(default=5, gt=0, le=30)
 
     database_url: str = "postgresql+asyncpg://procurex:procurex@localhost:5432/procurex"
     database_echo: bool = False
@@ -95,8 +99,21 @@ class Settings(BaseSettings):
                 raise ValueError(f"Missing deployed-environment settings: {', '.join(missing)}")
             if self.auth_mode is not AuthMode.OIDC:
                 raise ValueError("Staging and production require PROCUREX_AUTH_MODE=oidc")
-            if not self.oidc_issuer or not self.oidc_audience:
-                raise ValueError("Staging and production require OIDC issuer and audience")
+            if not self.oidc_issuer or not self.oidc_audience or not self.oidc_jwks_url:
+                raise ValueError(
+                    "Staging and production require OIDC issuer, audience, and JWKS URL"
+                )
+            issuer = urlsplit(self.oidc_issuer)
+            jwks = urlsplit(self.oidc_jwks_url)
+            if issuer.scheme != "https" or issuer.hostname is None:
+                raise ValueError("Staging and production require an HTTPS OIDC issuer")
+            if jwks.scheme != "https" or jwks.hostname is None:
+                raise ValueError("Staging and production require an HTTPS OIDC JWKS URL")
+            allowed_algorithms = {"RS256", "RS384", "RS512", "ES256", "ES384", "ES512"}
+            if not self.oidc_algorithms or not set(self.oidc_algorithms) <= allowed_algorithms:
+                raise ValueError(
+                    "OIDC algorithms must use an allowed asymmetric signature algorithm"
+                )
             if self.llm_provider != "gemini":
                 raise ValueError("Staging and production require PROCUREX_LLM_PROVIDER=gemini")
             if self.gemini_api_key is None or not self.gemini_api_key.get_secret_value().strip():

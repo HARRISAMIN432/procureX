@@ -1,0 +1,69 @@
+name: Backend CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: procurex
+          POSTGRES_USER: procurex
+          POSTGRES_PASSWORD: procurex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U procurex -d procurex"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.3"
+          enable-cache: false
+      - name: Install Python and locked dependencies
+        run: |
+          uv python install 3.12
+          uv sync --locked --all-groups
+      - name: Static verification
+        run: |
+          uv run ruff check .
+          uv run mypy app
+          uv audit --preview-features audit-command
+      - name: Apply migrations as schema owner
+        env:
+          PROCUREX_DATABASE_URL: postgresql+asyncpg://procurex:procurex@localhost:5432/procurex
+        run: uv run alembic upgrade head
+      - name: Create least-privilege integration role
+        env:
+          PGPASSWORD: procurex
+        run: |
+          psql --host localhost --username procurex --dbname procurex --set ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE procurex_app LOGIN PASSWORD 'procurex_app' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE procurex TO procurex_app;
+          GRANT USAGE ON SCHEMA public TO procurex_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO procurex_app;
+          GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO procurex_app;
+          SQL
+      - name: Run unit and PostgreSQL integration tests
+        env:
+          PROCUREX_DATABASE_URL: postgresql+asyncpg://procurex_app:procurex_app@localhost:5432/procurex
+          PROCUREX_TEST_DATABASE_URL: postgresql+asyncpg://procurex_app:procurex_app@localhost:5432/procurex
+        run: uv run pytest -q
+      - name: Build production container
+        run: docker build --file Dockerfile --tag procurex-backend:ci .
