@@ -30,6 +30,10 @@ values, non-HTTPS browser origins, debug mode, and SQL statement logging. The AP
 `X-Request-ID` and defensive browser headers on every response; production also disables `/docs`,
 `/redoc`, and `/openapi.json`. TLS termination and HTTP-to-HTTPS redirects remain edge concerns.
 
+`/health/ready` checks PostgreSQL within `PROCUREX_READINESS_TIMEOUT_SECONDS` and returns a safe
+structured `503` when the dependency fails or stalls. `/health/live` performs no dependency check.
+See the [database readiness runbook](../docs/runbooks/database-readiness.md) before wiring probes.
+
 Application transactions that access tenant-owned tables must use
 `tenant_transaction(organization_id)` or set the equivalent transaction-local PostgreSQL
 context. Never accept the organization ID directly from an unauthenticated request body.

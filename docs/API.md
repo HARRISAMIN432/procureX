@@ -33,7 +33,11 @@ payload is a conflict.
 | Endpoint | Meaning |
 |---|---|
 | `GET /health/live` | Process is running; no dependency check |
-| `GET /health/ready` | Required database dependency is reachable |
+| `GET /health/ready` | `200` when PostgreSQL is reachable; bounded `503` on timeout/unavailability |
+
+Readiness failures use a safe `checks.database.status` value of `timeout` or `unavailable` and do
+not return provider exception text or connection details. Liveness intentionally performs no
+dependency checks, preventing a database outage from turning into a process restart loop.
 
 ## Implemented identity endpoints
 

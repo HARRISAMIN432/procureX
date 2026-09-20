@@ -79,6 +79,9 @@ bootstrap; rejected or change-requested POs cannot proceed to receipt or invoice
 The first P8 stabilization slice adds fail-closed deployed HTTP-edge configuration, exact trusted
 host and CORS allowlists, HTTPS-only deployed browser origins, request correlation IDs, defensive
 response headers, HSTS in staging/production, and disabled production API documentation routes.
+Database readiness is now bounded by a configurable timeout and returns a safe structured `503`
+without leaking connection errors; a recovery/drill runbook distinguishes traffic draining from
+process restart decisions.
 
 The current backend foundation must provide:
 

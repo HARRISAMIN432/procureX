@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     database_echo: bool = False
     database_pool_size: int = 10
     database_max_overflow: int = 20
+    readiness_timeout_seconds: float = Field(default=3.0, ge=0.05, le=30)
 
     cloudinary_cloud_name: str | None = None
     cloudinary_api_key: SecretStr | None = None

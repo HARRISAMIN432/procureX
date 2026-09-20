@@ -51,6 +51,13 @@ def test_document_intake_limits_must_be_safe() -> None:
         Settings(document_upload_intent_ttl_seconds=30, _env_file=None)
 
 
+def test_readiness_timeout_is_bounded() -> None:
+    with pytest.raises(ValidationError):
+        Settings(readiness_timeout_seconds=0, _env_file=None)
+    with pytest.raises(ValidationError):
+        Settings(readiness_timeout_seconds=31, _env_file=None)
+
+
 def deployed_settings(**overrides: object) -> dict[str, object]:
     values: dict[str, object] = {
         "environment": Environment.PRODUCTION,
