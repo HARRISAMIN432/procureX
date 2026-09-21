@@ -14,7 +14,7 @@ Status as of 2026-09-21: **BLOCKED — do not mark P8 complete or onboard a pilo
 | Cloudinary recovery/deletion | Blocked | Select account/policy; implement and exercise reconciliation, restore, deletion/CDN invalidation |
 | Document hostile-input pipeline | Partial | Scan and parse jobs dispatch, re-verify bytes/SHA-256, run bounded ClamAV, and isolate parser/OCR with seccomp plus resource/archive limits; real Cloudinary/ClamAV hostile staging fixtures remain |
 | Worker/provider recovery | Blocked | Staging evidence for broker restart, model outage, checkpoint resume, idempotent replay |
-| Accessible critical screens | Blocked | No web application exists; build screens and complete automated + manual WCAG 2.2 AA review |
+| Accessible critical screens | Partial | Responsive buyer workspace implemented; run automated checks plus manual keyboard/screen-reader and representative-user WCAG 2.2 AA review; supplier self-service portal remains |
 | Pilot onboarding/acceptance | Prepared, not accepted | Use pilot onboarding checklist; name owners/users and retain completed supervised scenario evidence |
 | Security review | Blocked | Independent review and remediation/acceptance of critical/high findings required |
 | Known limitations approval | Draft only | Pilot sponsor and service/security owners must sign and date the supported scope |

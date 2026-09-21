@@ -1,5 +1,23 @@
 services:
   - type: web
+    name: procurex-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: VITE_API_URL
+        value: https://procurex-api.onrender.com
+      - key: VITE_AUTH_MODE
+        value: oidc
+      - key: VITE_OIDC_AUTHORITY
+        sync: false
+      - key: VITE_OIDC_CLIENT_ID
+        sync: false
+      - key: VITE_OIDC_SCOPE
+        value: openid profile email
+  - type: web
     name: procurex-api
     runtime: docker
     plan: free
@@ -20,7 +38,7 @@ services:
       - key: PROCUREX_ALLOWED_HOSTS
         value: '["procurex-api.onrender.com"]'
       - key: PROCUREX_CORS_ALLOWED_ORIGINS
-        value: '["https://procurex-api.onrender.com"]'
+        value: '["https://procurex-web.onrender.com"]'
       - key: PROCUREX_DATABASE_URL
         fromDatabase:
           name: procurex-db

@@ -1,17 +1,19 @@
 # Render deployment
 
-`render.yaml` provisions a zero-cost **demonstration** API and a free PostgreSQL database. It is a
+`render.yaml` provisions a zero-cost **demonstration** web application, API, and PostgreSQL database. It is a
 convenient way to exercise ProcureX with synthetic data; it is not a production topology and must
 not hold customer procurement documents.
 
 ## Deploy the demonstration
 
-1. Connect the repository as a Render Blueprint and review the generated `procurex-api` and
-   `procurex-db` resources.
+1. Connect the repository as a Render Blueprint and review the generated `procurex-web`,
+   `procurex-api`, and `procurex-db` resources.
 2. Supply the Blueprint's prompted secrets: OIDC issuer, audience and JWKS URL; Cloudinary cloud
    name, key and secret; and a Gemini API key. Use separate development/provider projects.
-3. If Render changes the service slug, update `PROCUREX_ALLOWED_HOSTS` and
-   `PROCUREX_CORS_ALLOWED_ORIGINS` to exact JSON arrays containing the actual HTTPS hostname.
+3. Set the frontend OIDC authority and client ID. Register
+   `https://procurex-web.onrender.com/auth/callback` with the provider. If Render changes either
+   service slug, update `VITE_API_URL`, `PROCUREX_ALLOWED_HOSTS`, and
+   `PROCUREX_CORS_ALLOWED_ORIGINS` to the actual HTTPS hostnames.
 4. Deploy. The free-demo start command applies Alembic migrations before starting the API. Check
    `/health/ready`, then create the first organization through `POST /api/v1/organizations` with an
    OIDC access token whose verified email matches `admin_email`.

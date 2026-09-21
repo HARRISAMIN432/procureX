@@ -2,14 +2,15 @@
 
 Status as of 2026-09-20: **not yet accepted for pilot**.
 
-The repository currently provides backend APIs and workers only. There is no buyer or supplier web
-application, so the P8 accessible-critical-screen gate and end-to-end user acceptance cannot pass.
-Supplier submissions and acknowledgements remain controlled intake APIs rather than a proven,
-isolated supplier portal.
+The repository now includes a responsive buyer web application for the implemented R1 backend
+surfaces. Automated accessibility checks, manual keyboard/screen-reader review, representative-user
+acceptance, and a separately isolated supplier portal are still outstanding, so the P8 accessible-
+critical-screen gate and end-to-end acceptance cannot yet pass. Supplier submissions and
+acknowledgements remain controlled buyer-side intake rather than supplier self-service.
 
-OIDC-backed organization signup, verified-email invitation acceptance, tenant roles, and member
-lifecycle APIs are implemented, but no email delivery or administration UI exists and the selected
-identity provider still requires a staging provisioning/revocation/key-rotation drill.
+OIDC-backed organization signup, verified-email invitation acceptance, tenant roles, member
+lifecycle APIs, and administration UI are implemented, but invitation email delivery and the
+selected identity provider's staging provisioning/revocation/key-rotation drill remain outstanding.
 
 Other open release blockers:
 
