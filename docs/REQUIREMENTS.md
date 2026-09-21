@@ -36,10 +36,11 @@ The initial P4/DOC-01 and DOC-02 intake slice now provides constrained PDF/XLSX/
 upload intents, immutable authenticated Cloudinary identities, provider-response verification,
 quarantine state, idempotent scan dispatch, trusted scan-result recording, and tenant document
 reads. The follow-on P4 slice adds idempotent native/OCR/hybrid result ingestion, immutable parser
-attempts, canonical result digests, and ordered page/text/table sources. Actual scanner/parser
-execution, server-side byte/hash verification, and model-driven structured extraction remain
-incomplete. Tenant-authorized user downloads now issue audited, short-lived Cloudinary URLs only
-for post-scan versions backed by verified assets.
+attempts, canonical result digests, and ordered page/text/table sources. Durable workers now
+re-download and verify immutable bytes, run bounded ClamAV scanning, and execute native/OCR parsing
+in a seccomp network-denied, resource-limited subprocess. Model-driven structured extraction and
+external hostile-input evidence remain incomplete. Tenant-authorized user downloads issue audited,
+short-lived Cloudinary URLs only for post-scan versions backed by verified assets.
 
 The structured extraction/review slice now persists schema-bound proposed fields, same-parse page
 anchors, missing/ambiguous/conflicting states, optimistic human verification/correction history,

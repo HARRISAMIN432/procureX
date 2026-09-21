@@ -25,6 +25,8 @@ class SigningKeyClient(Protocol):
 @dataclass(frozen=True, slots=True)
 class OIDCPrincipal:
     subject: str
+    email: str | None = None
+    email_verified: bool = False
 
 
 @lru_cache(maxsize=16)
@@ -57,7 +59,17 @@ def _decode_token(settings: Settings, token: str, key_client: SigningKeyClient) 
     subject = cast(object, claims.get("sub"))
     if not isinstance(subject, str) or not subject.strip() or len(subject) > 255:
         raise OIDCAuthenticationError("Bearer token subject is invalid")
-    return OIDCPrincipal(subject=subject)
+    email_claim = claims.get("email")
+    email = (
+        email_claim.strip().lower()
+        if isinstance(email_claim, str) and email_claim.strip() and len(email_claim) <= 320
+        else None
+    )
+    return OIDCPrincipal(
+        subject=subject,
+        email=email,
+        email_verified=email is not None and claims.get("email_verified") is True,
+    )
 
 
 async def authenticate_bearer_token(

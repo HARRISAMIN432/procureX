@@ -3,7 +3,7 @@ import secrets
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select, text
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
@@ -24,9 +24,14 @@ from app.models.identity import (
 )
 from app.models.platform import ActorType, AuditEvent, OutboxEvent
 from app.schemas.identity import (
+    MemberInviteCreate,
+    MemberRead,
+    MembershipUpdate,
     OrganizationBootstrapRequest,
     OrganizationBootstrapResponse,
     OrganizationSettingsWrite,
+    RoleCreate,
+    RoleRead,
 )
 
 PERMISSION_CATALOG: dict[str, str] = {
@@ -93,6 +98,14 @@ class SlugAlreadyExistsError(ValueError):
     pass
 
 
+class IdentityConflictError(ValueError):
+    pass
+
+
+class IdentityNotFoundError(ValueError):
+    pass
+
+
 def verify_bootstrap_key(settings: Settings, supplied_key: str | None) -> None:
     expected = settings.dev_bootstrap_key.get_secret_value()
     if supplied_key is None or not secrets.compare_digest(supplied_key, expected):
@@ -101,6 +114,8 @@ def verify_bootstrap_key(settings: Settings, supplied_key: str | None) -> None:
 
 async def bootstrap_organization(
     payload: OrganizationBootstrapRequest,
+    *,
+    external_subject: str | None = None,
 ) -> OrganizationBootstrapResponse:
     organization_id = uuid.uuid4()
     user_id = uuid.uuid4()
@@ -113,19 +128,39 @@ async def bootstrap_organization(
             text("SELECT set_config('app.current_organization_id', :organization_id, true)"),
             {"organization_id": str(organization_id)},
         )
-        existing_user = await session.scalar(
+        existing_by_email = await session.scalar(
             select(User).where(func.lower(User.email) == str(payload.admin_email).lower())
         )
+        existing_by_subject = (
+            await session.scalar(select(User).where(User.external_subject == external_subject))
+            if external_subject is not None
+            else None
+        )
+        if (
+            existing_by_email is not None
+            and existing_by_subject is not None
+            and existing_by_email.id != existing_by_subject.id
+        ):
+            raise IdentityConflictError("Verified identity and email belong to different users")
+        existing_user = existing_by_subject or existing_by_email
         if existing_user is None:
             user = User(
                 id=user_id,
                 email=str(payload.admin_email).lower(),
                 display_name=payload.admin_display_name,
                 status=UserStatus.ACTIVE,
+                external_subject=external_subject,
             )
             session.add(user)
         else:
             user_id = existing_user.id
+            if external_subject is not None:
+                if existing_user.external_subject not in {None, external_subject}:
+                    raise IdentityConflictError("Email is already bound to another identity")
+                existing_user.external_subject = external_subject
+                existing_user.status = UserStatus.ACTIVE
+                existing_user.email = str(payload.admin_email).lower()
+                existing_user.display_name = payload.admin_display_name
 
         session.add(
             Organization(
@@ -223,6 +258,307 @@ async def bootstrap_organization(
         membership_id=membership_id,
         role_id=role_id,
     )
+
+
+async def _role_views(context: RequestContext) -> list[RoleRead]:
+    roles = list(
+        await context.session.scalars(
+            select(Role)
+            .where(Role.organization_id == context.organization_id)
+            .order_by(Role.name, Role.id)
+        )
+    )
+    assignments = list(
+        await context.session.execute(
+            select(RolePermission.role_id, RolePermission.permission_code)
+            .where(RolePermission.organization_id == context.organization_id)
+            .order_by(RolePermission.permission_code)
+        )
+    )
+    permissions_by_role: dict[uuid.UUID, list[str]] = {}
+    for role_id, permission_code in assignments:
+        permissions_by_role.setdefault(role_id, []).append(permission_code)
+    return [
+        RoleRead(
+            id=role.id,
+            name=role.name,
+            description=role.description,
+            is_system=role.is_system,
+            permission_codes=permissions_by_role.get(role.id, []),
+        )
+        for role in roles
+    ]
+
+
+async def list_roles(context: RequestContext) -> list[RoleRead]:
+    return await _role_views(context)
+
+
+async def create_role(context: RequestContext, payload: RoleCreate) -> RoleRead:
+    valid_permissions = set(
+        await context.session.scalars(
+            select(Permission.code).where(Permission.code.in_(payload.permission_codes))
+        )
+    )
+    unknown = sorted(set(payload.permission_codes) - valid_permissions)
+    if unknown:
+        raise IdentityNotFoundError(f"Unknown permission codes: {', '.join(unknown)}")
+    existing = await context.session.scalar(
+        select(Role.id).where(
+            Role.organization_id == context.organization_id,
+            func.lower(Role.name) == payload.name.lower(),
+        )
+    )
+    if existing is not None:
+        raise IdentityConflictError("A role with this name already exists")
+    role = Role(
+        organization_id=context.organization_id,
+        name=payload.name,
+        description=payload.description,
+        is_system=False,
+    )
+    context.session.add(role)
+    await context.session.flush()
+    context.session.add_all(
+        [
+            RolePermission(
+                organization_id=context.organization_id,
+                role_id=role.id,
+                permission_code=code,
+            )
+            for code in payload.permission_codes
+        ]
+    )
+    context.session.add(
+        AuditEvent(
+            organization_id=context.organization_id,
+            actor_type=ActorType.USER,
+            actor_id=context.user_id,
+            action="organization.role_created",
+            object_type="role",
+            object_id=role.id,
+            object_version=1,
+            changes={"name": role.name, "permission_codes": sorted(payload.permission_codes)},
+        )
+    )
+    await context.session.flush()
+    return RoleRead(
+        id=role.id,
+        name=role.name,
+        description=role.description,
+        is_system=False,
+        permission_codes=sorted(payload.permission_codes),
+    )
+
+
+async def _member_view(context: RequestContext, membership: Membership) -> MemberRead:
+    user = await context.session.get(User, membership.user_id)
+    assert user is not None
+    role_ids = list(
+        await context.session.scalars(
+            select(MembershipRole.role_id)
+            .where(
+                MembershipRole.organization_id == context.organization_id,
+                MembershipRole.membership_id == membership.id,
+            )
+            .order_by(MembershipRole.role_id)
+        )
+    )
+    return MemberRead(
+        membership_id=membership.id,
+        user_id=user.id,
+        email=user.email,
+        display_name=user.display_name,
+        status=membership.status.value,
+        role_ids=role_ids,
+        joined_at=membership.joined_at,
+    )
+
+
+async def list_members(context: RequestContext) -> list[MemberRead]:
+    memberships = list(
+        await context.session.scalars(
+            select(Membership)
+            .where(Membership.organization_id == context.organization_id)
+            .order_by(Membership.created_at, Membership.id)
+        )
+    )
+    return [await _member_view(context, membership) for membership in memberships]
+
+
+async def _validated_roles(context: RequestContext, role_ids: list[uuid.UUID]) -> list[uuid.UUID]:
+    found = list(
+        await context.session.scalars(
+            select(Role.id).where(
+                Role.organization_id == context.organization_id,
+                Role.id.in_(role_ids),
+            )
+        )
+    )
+    if set(found) != set(role_ids):
+        raise IdentityNotFoundError("One or more roles do not exist in this organization")
+    return found
+
+
+async def invite_member(context: RequestContext, payload: MemberInviteCreate) -> MemberRead:
+    role_ids = await _validated_roles(context, payload.role_ids)
+    email = str(payload.email).lower()
+    user = await context.session.scalar(select(User).where(func.lower(User.email) == email))
+    if user is None:
+        user = User(
+            email=email,
+            display_name=payload.display_name,
+            status=UserStatus.INVITED,
+        )
+        context.session.add(user)
+        await context.session.flush()
+    existing = await context.session.scalar(
+        select(Membership.id).where(
+            Membership.organization_id == context.organization_id,
+            Membership.user_id == user.id,
+        )
+    )
+    if existing is not None:
+        raise IdentityConflictError("This user already has an organization membership")
+    already_active = user.status is UserStatus.ACTIVE and user.external_subject is not None
+    membership = Membership(
+        organization_id=context.organization_id,
+        user_id=user.id,
+        status=MembershipStatus.ACTIVE if already_active else MembershipStatus.INVITED,
+        invited_by_user_id=context.user_id,
+        joined_at=datetime.now(UTC) if already_active else None,
+    )
+    context.session.add(membership)
+    await context.session.flush()
+    context.session.add_all(
+        [
+            MembershipRole(
+                organization_id=context.organization_id,
+                membership_id=membership.id,
+                role_id=role_id,
+            )
+            for role_id in role_ids
+        ]
+    )
+    context.session.add(
+        AuditEvent(
+            organization_id=context.organization_id,
+            actor_type=ActorType.USER,
+            actor_id=context.user_id,
+            action="organization.member_invited",
+            object_type="membership",
+            object_id=membership.id,
+            object_version=1,
+            changes={"user_id": str(user.id), "role_ids": sorted(map(str, role_ids))},
+        )
+    )
+    await context.session.flush()
+    return await _member_view(context, membership)
+
+
+async def update_membership(
+    context: RequestContext, membership_id: uuid.UUID, payload: MembershipUpdate
+) -> MemberRead:
+    membership = await context.session.scalar(
+        select(Membership)
+        .where(
+            Membership.organization_id == context.organization_id,
+            Membership.id == membership_id,
+        )
+        .with_for_update()
+    )
+    if membership is None:
+        raise IdentityNotFoundError("Membership not found")
+    if membership.id == context.membership_id and payload.status in {"suspended", "revoked"}:
+        raise IdentityConflictError("You cannot suspend or revoke your own membership")
+    if membership.id == context.membership_id and payload.role_ids is not None:
+        raise IdentityConflictError("You cannot change your own role assignments")
+    target_is_admin = await context.session.scalar(
+        select(MembershipRole.membership_id)
+        .join(
+            Role,
+            (Role.organization_id == MembershipRole.organization_id)
+            & (Role.id == MembershipRole.role_id),
+        )
+        .where(
+            MembershipRole.organization_id == context.organization_id,
+            MembershipRole.membership_id == membership.id,
+            Role.is_system.is_(True),
+            Role.name == "Organization administrator",
+        )
+    )
+    removes_admin = payload.status in {"suspended", "revoked"}
+    if payload.role_ids is not None and target_is_admin is not None:
+        admin_role_id = await context.session.scalar(
+            select(Role.id).where(
+                Role.organization_id == context.organization_id,
+                Role.is_system.is_(True),
+                Role.name == "Organization administrator",
+            )
+        )
+        removes_admin = admin_role_id not in payload.role_ids
+    if target_is_admin is not None and removes_admin:
+        other_admin = await context.session.scalar(
+            select(Membership.id)
+            .join(
+                MembershipRole,
+                (MembershipRole.organization_id == Membership.organization_id)
+                & (MembershipRole.membership_id == Membership.id),
+            )
+            .join(
+                Role,
+                (Role.organization_id == MembershipRole.organization_id)
+                & (Role.id == MembershipRole.role_id),
+            )
+            .where(
+                Membership.organization_id == context.organization_id,
+                Membership.id != membership.id,
+                Membership.status == MembershipStatus.ACTIVE,
+                Role.is_system.is_(True),
+                Role.name == "Organization administrator",
+            )
+            .limit(1)
+        )
+        if other_admin is None:
+            raise IdentityConflictError("The organization must retain an active administrator")
+    if payload.role_ids is not None:
+        role_ids = await _validated_roles(context, payload.role_ids)
+        await context.session.execute(
+            delete(MembershipRole).where(
+                MembershipRole.organization_id == context.organization_id,
+                MembershipRole.membership_id == membership.id,
+            )
+        )
+        context.session.add_all(
+            [
+                MembershipRole(
+                    organization_id=context.organization_id,
+                    membership_id=membership.id,
+                    role_id=role_id,
+                )
+                for role_id in role_ids
+            ]
+        )
+    if payload.status is not None:
+        membership.status = MembershipStatus(payload.status)
+        if membership.status is MembershipStatus.ACTIVE and membership.joined_at is None:
+            membership.joined_at = datetime.now(UTC)
+        if membership.status is MembershipStatus.REVOKED:
+            membership.revoked_at = datetime.now(UTC)
+    context.session.add(
+        AuditEvent(
+            organization_id=context.organization_id,
+            actor_type=ActorType.USER,
+            actor_id=context.user_id,
+            action="organization.membership_updated",
+            object_type="membership",
+            object_id=membership.id,
+            object_version=1,
+            changes=payload.model_dump(mode="json", exclude_none=True),
+        )
+    )
+    await context.session.flush()
+    return await _member_view(context, membership)
 
 
 async def create_organization_settings(

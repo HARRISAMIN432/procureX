@@ -46,16 +46,25 @@ dependency checks, preventing a database outage from turning into a process rest
 
 | Endpoint | Permission / restriction |
 |---|---|
+| `POST /api/v1/organizations` | OIDC bearer with verified matching email; self-service signup must be enabled |
 | `POST /api/v1/organizations/dev-bootstrap` | Local/test only; `X-Dev-Bootstrap-Key` required |
 | `GET /api/v1/organizations/current` | `organization.read` |
 | `GET /api/v1/organizations/current/membership` | `organization.read` |
+| `GET /api/v1/organizations/current/roles` | `organization.members.read` |
+| `POST /api/v1/organizations/current/roles` | `organization.members.manage` |
+| `GET /api/v1/organizations/current/members` | `organization.members.read` |
+| `POST /api/v1/organizations/current/members` | `organization.members.manage` |
+| `PATCH /api/v1/organizations/current/members/{membership_id}` | `organization.members.manage` |
 | `GET /api/v1/organizations/current/settings` | `organization.settings.read` |
 | `PUT /api/v1/organizations/current/settings` | `organization.settings.write` |
 
 Local requests may identify their development principal with `X-Organization-ID` and
 `X-User-ID`. Staging and production require `Authorization: Bearer ...` plus the explicitly
-selected `X-Organization-ID`; the bearer subject maps only to a pre-provisioned active user and
-that user must have an active membership in the selected organization. Configuration pins the
+selected `X-Organization-ID`. Administrators invite a verified email and assign tenant-scoped
+roles; first sign-in binds only a matching provider-verified email to the invitation. Existing
+provider subjects can join additional organizations through an invitation. Self-service
+organization creation is separately configurable and requires the request email to match the
+verified token claim. Configuration pins the
 HTTPS issuer/JWKS URL, audience, asymmetric algorithms, clock skew, and JWKS timeout. Development
 identity headers are not a production authentication mechanism.
 
@@ -144,8 +153,6 @@ idempotency-key middleware remain P3 work and must land before external supplier
 |---|---|---|
 | `POST /api/v1/documents/upload-intents` | `documents.write` | Validate metadata, create a quarantined immutable version, and return a short-lived signed Cloudinary upload request |
 | `POST /api/v1/documents/{id}/versions/{version_id}/complete-upload` | `documents.write` | Verify the exact authenticated/raw provider response, register the asset, and enqueue scanning once |
-| `POST /api/v1/documents/versions/{version_id}/scan-results` | `documents.scan` | Record a trusted scanner result and gate parsing/rejection |
-| `POST /api/v1/documents/versions/{version_id}/parse-results` | `documents.process` | Idempotently record an immutable native/OCR/hybrid attempt with ordered pages and tables |
 | `GET /api/v1/documents` | `documents.read` | List tenant documents with version, asset, and scan state |
 | `GET /api/v1/documents/{id}` | `documents.read` | Return one tenant document and its immutable version history |
 | `GET /api/v1/documents/versions/{version_id}/download` | `documents.read` | Issue an audited short-lived URL for a tenant-owned clean, verified asset |
@@ -153,27 +160,29 @@ idempotency-key middleware remain P3 work and must land before external supplier
 The intake API currently supports PDF, XLSX, DOCX, JPEG, and PNG with a configurable byte limit
 (25 MiB by default). Filenames must be basenames, hashes are lowercase SHA-256 declarations, and
 upload intents expire after ten minutes by default. Assets remain quarantined and unavailable to
-parsers until an authorized clean scan result advances the version to `parsing` and queues one
-parse job. Parser results use a stable `result_key`: replaying the same content returns the existing
+parsers until the internal security worker records an explicit clean scan and queues one parse
+job. Scanner and parser result mutation is deliberately not exposed over tenant HTTP APIs.
+Parser results use a stable `result_key`: replaying the same content returns the existing
 result, while reusing the key with changed content is a conflict. Successful native, OCR, or hybrid
 results require consecutive pages and advance the version to `parsed`; failed attempts remain
 immutable while the version stays recoverable in `parsing`. User downloads recheck tenant access
 and safe asset state before issuing a short-lived authenticated URL. Upload completion dispatches
 the durable scan job to a dedicated document-security queue. That worker independently retrieves
 the authenticated asset, rejects redirects, enforces the declared byte count and SHA-256, and
-accepts only an explicit timeout-bounded ClamAV clean/infected verdict. Parser execution, OCR,
-model-driven extraction, and parser-worker downloads remain incomplete.
+accepts only an explicit timeout-bounded ClamAV clean/infected verdict. Clean results dispatch a
+parse worker that re-verifies the source and performs native PDF/DOCX/XLSX parsing plus Tesseract
+OCR in a network-denied, resource-limited subprocess. Model-driven extraction remains incomplete.
 
 ## Implemented extraction and review endpoints
 
 | Endpoint | Permission | Behavior |
 |---|---|---|
-| `POST /api/v1/document-versions/{id}/extractions` | `documents.process` | Idempotently record schema-validated proposed fields bound to a completed parse and evidence pages |
 | `GET /api/v1/extractions/{id}` | `documents.read` | Return fields, evidence anchors, review history, digests, and workflow state |
 | `POST /api/v1/extractions/{id}/fields/{field_id}/review` | `documents.review` | Verify, correct, or reject one field using the expected extraction revision |
 | `POST /api/v1/extractions/{id}/finalize` | `documents.review` | Complete review only when every critical field is verified and all fields are resolved |
 
-Extraction output can propose `proposed`, `missing`, `ambiguous`, or `conflicting`; it cannot mark
+Extraction creation is worker-internal and is not exposed to tenant callers. Output can propose
+`proposed`, `missing`, `ambiguous`, or `conflicting`; it cannot mark
 itself verified. Every non-missing value requires an anchor to a page from the bound parse. Result
 keys and canonical digests make worker replay idempotent, and optimistic revisions protect review
 updates. Corrections preserve prior status/value and reviewer/reason. Finalization moves the

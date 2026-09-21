@@ -16,6 +16,12 @@ def test_local_settings_have_safe_defaults() -> None:
     assert settings.llm_model == "gemini-3.1-pro-preview"
 
 
+@pytest.mark.parametrize("scheme", ["postgres://", "postgresql://"])
+def test_managed_postgres_urls_use_async_driver(scheme: str) -> None:
+    settings = Settings(database_url=f"{scheme}user:pass@db.example/procurex", _env_file=None)
+    assert settings.database_url == "postgresql+asyncpg://user:pass@db.example/procurex"
+
+
 def test_production_requires_cloudinary_credentials() -> None:
     with pytest.raises(ValidationError, match="cloudinary_cloud_name"):
         Settings(environment=Environment.PRODUCTION, _env_file=None)

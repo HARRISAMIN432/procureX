@@ -409,6 +409,8 @@ async def record_parse_result(
     context: RequestContext,
     version_id: uuid.UUID,
     payload: ParseResultCreate,
+    *,
+    actor_type: ActorType = ActorType.USER,
 ) -> DocumentRead:
     candidate = await context.session.scalar(
         select(DocumentVersion).where(
@@ -534,6 +536,7 @@ async def record_parse_result(
             "content_digest": digest,
         },
         event_version=parse.version,
+        actor_type=actor_type,
     )
     await context.session.flush()
     return await read_document(context, document.id)

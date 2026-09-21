@@ -8,14 +8,12 @@ from app.auth.context import RequestContext, require_permission
 from app.schemas.extractions import (
     ExtractionFinalize,
     ExtractionRead,
-    ExtractionResultCreate,
     FieldReviewCreate,
 )
 from app.services.extractions import (
     ExtractionConflictError,
     ExtractionNotFoundError,
     ExtractionValidationError,
-    create_extraction,
     finalize_extraction,
     read_extraction,
     review_field,
@@ -42,19 +40,6 @@ async def execute[ResultT](command: Callable[[], Awaitable[ResultT]]) -> ResultT
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "extraction_validation_failed", "message": str(exc)},
         ) from exc
-
-
-@router.post(
-    "/document-versions/{version_id}/extractions",
-    response_model=ExtractionRead,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create(
-    version_id: UUID,
-    payload: ExtractionResultCreate,
-    context: Annotated[RequestContext, Depends(require_permission("documents.process"))],
-) -> ExtractionRead:
-    return await execute(lambda: create_extraction(context, version_id, payload))
 
 
 @router.get("/extractions/{extraction_id}", response_model=ExtractionRead)

@@ -14,8 +14,6 @@ from app.schemas.documents import (
     DocumentUploadComplete,
     DocumentUploadIntentCreate,
     DocumentUploadIntentRead,
-    ParseResultCreate,
-    ScanResultCreate,
 )
 from app.services.documents import (
     DocumentConflictError,
@@ -26,8 +24,6 @@ from app.services.documents import (
     create_upload_intent,
     list_documents,
     read_document,
-    record_parse_result,
-    record_scan_result,
 )
 from app.workers.documents import enqueue_document_scan
 
@@ -89,24 +85,6 @@ async def finish_upload(
     )
     background_tasks.add_task(enqueue_document_scan, context.organization_id, version_id)
     return document
-
-
-@router.post("/versions/{version_id}/scan-results", response_model=DocumentRead)
-async def scan_result(
-    version_id: UUID,
-    payload: ScanResultCreate,
-    context: Annotated[RequestContext, Depends(require_permission("documents.scan"))],
-) -> DocumentRead:
-    return await execute(lambda: record_scan_result(context, version_id, payload))
-
-
-@router.post("/versions/{version_id}/parse-results", response_model=DocumentRead)
-async def parse_result(
-    version_id: UUID,
-    payload: ParseResultCreate,
-    context: Annotated[RequestContext, Depends(require_permission("documents.process"))],
-) -> DocumentRead:
-    return await execute(lambda: record_parse_result(context, version_id, payload))
 
 
 @router.get("", response_model=DocumentList)

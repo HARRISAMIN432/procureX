@@ -55,6 +55,4 @@ def test_download_requires_clean_verified_asset_state() -> None:
     with pytest.raises(DocumentConflictError, match="cannot be downloaded"):
         validate_download_state(DocumentVersionStatus.SCANNING, AssetStatus.UPLOADED)
     with pytest.raises(DocumentConflictError, match="deletion_pending"):
-        validate_download_state(
-            DocumentVersionStatus.REVIEWED, AssetStatus.DELETION_PENDING
-        )
+        validate_download_state(DocumentVersionStatus.REVIEWED, AssetStatus.DELETION_PENDING)

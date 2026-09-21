@@ -198,9 +198,7 @@ class FieldReview(UUIDPrimaryKeyMixin, Base):
             "('proposed','missing','ambiguous','conflicting','verified','rejected')",
             name="valid_previous_status",
         ),
-        CheckConstraint(
-            "reviewed_status IN ('verified','rejected')", name="valid_reviewed_status"
-        ),
+        CheckConstraint("reviewed_status IN ('verified','rejected')", name="valid_reviewed_status"),
     )
 
     organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)

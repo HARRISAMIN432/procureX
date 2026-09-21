@@ -36,9 +36,7 @@ def test_document_analysis_graph_rejects_stale_resume() -> None:
     graph.invoke(initial_state(), config)
 
     try:
-        graph.invoke(
-            Command(resume={"review_complete": True, "source_digest": "b" * 64}), config
-        )
+        graph.invoke(Command(resume={"review_complete": True, "source_digest": "b" * 64}), config)
     except ValueError as exc:
         assert "stale" in str(exc)
     else:

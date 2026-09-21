@@ -66,9 +66,7 @@ def signed_document_upload_request(
     assert settings.cloudinary_api_secret is not None
     assert settings.cloudinary_cloud_name is not None
     issued_at = int(time.time()) if timestamp is None else timestamp
-    options = authenticated_document_upload_options(
-        settings, organization_id, document_version_id
-    )
+    options = authenticated_document_upload_options(settings, organization_id, document_version_id)
     signed_parameters = {
         "public_id": options["public_id"],
         "type": options["type"],

@@ -71,12 +71,14 @@ OCR, model, or user download may consume an asset while its version is quarantin
 After a clean scan, an authorized user may request a short-lived signed URL; tenant access and
 asset state are rechecked on every request and issuance is audited.
 
-A clean scan also queues one `document.parse` job. A parser worker reports an immutable native,
-OCR, or hybrid attempt using a stable result key. Identical replay is accepted without duplicate
-pages or events; changed content under the same key is rejected. Failed attempts retain their error
-and leave the version in `parsing` for recovery. A completed attempt must contain consecutive page
-numbers and persists source labels, text, dimensions, OCR confidence, and tables before moving the
-version to `parsed`. Extraction may consume only a completed parse of that version.
+A clean scan also dispatches one `document.parse` job. The worker re-downloads and re-verifies the
+immutable source, then runs native PDF/DOCX/XLSX extraction or Tesseract image/PDF OCR in a separate
+network-denied and resource-limited process. It reports an immutable native, OCR, or hybrid attempt
+using a stable result key. Identical replay is accepted without duplicate pages or events; changed
+content under the same key is rejected. Failed attempts retain their error and leave the version in
+`parsing` for recovery. A completed attempt must contain consecutive page numbers and persists
+source labels, text, dimensions, and tables before moving the version to `parsed`. Extraction may
+consume only a completed parse of that version.
 
 A structured extraction result binds to the completed parse digest and enters `awaiting_review`;
 the document version becomes `extracted`. Non-missing values require same-parse page anchors, while

@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: procurex-api
+    runtime: docker
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    dockerCommand: /bin/sh -c 'alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}'
+    healthCheckPath: /health/ready
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: PROCUREX_ENVIRONMENT
+        value: production
+      - key: PROCUREX_DEBUG
+        value: "false"
+      - key: PROCUREX_AUTH_MODE
+        value: oidc
+      - key: PROCUREX_ALLOW_SELF_SERVICE_ORGANIZATION_SIGNUP
+        value: "true"
+      - key: PROCUREX_ALLOWED_HOSTS
+        value: '["procurex-api.onrender.com"]'
+      - key: PROCUREX_CORS_ALLOWED_ORIGINS
+        value: '["https://procurex-api.onrender.com"]'
+      - key: PROCUREX_DATABASE_URL
+        fromDatabase:
+          name: procurex-db
+          property: connectionString
+      - key: PROCUREX_TASK_EXECUTION_MODE
+        value: eager
+      - key: PROCUREX_RABBITMQ_URL
+        value: memory://
+      - key: PROCUREX_REDIS_URL
+        value: cache+memory://
+      - key: PROCUREX_CLOUDINARY_FOLDER_PREFIX
+        value: procurex/production
+      - key: PROCUREX_OIDC_ISSUER
+        sync: false
+      - key: PROCUREX_OIDC_AUDIENCE
+        sync: false
+      - key: PROCUREX_OIDC_JWKS_URL
+        sync: false
+      - key: PROCUREX_CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: PROCUREX_CLOUDINARY_API_KEY
+        sync: false
+      - key: PROCUREX_CLOUDINARY_API_SECRET
+        sync: false
+      - key: PROCUREX_GEMINI_API_KEY
+        sync: false
+
+databases:
+  - name: procurex-db
+    plan: free
+    databaseName: procurex
+    user: procurex

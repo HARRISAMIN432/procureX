@@ -1,6 +1,6 @@
 from celery import Celery  # type: ignore[import-untyped]
 
-from app.core.config import get_settings
+from app.core.config import TaskExecutionMode, get_settings
 
 settings = get_settings()
 celery_app = Celery(
@@ -15,9 +15,12 @@ celery_app.conf.update(
     result_serializer="json",
     task_acks_late=True,
     task_reject_on_worker_lost=True,
+    task_always_eager=settings.task_execution_mode is TaskExecutionMode.EAGER,
+    task_eager_propagates=False,
     worker_prefetch_multiplier=1,
     task_routes={
         "procurex.document_scan": {"queue": "documents.security"},
+        "procurex.document_parse": {"queue": "documents.parsing"},
         "procurex.evaluation_analysis": {"queue": "ai.evaluations"},
     },
 )

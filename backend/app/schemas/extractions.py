@@ -44,18 +44,14 @@ class EvidenceAnchorWrite(BaseModel):
 
 
 class ExtractedFieldWrite(BaseModel):
-    field_key: str = Field(
-        min_length=1, max_length=160, pattern=r"^[a-z][a-z0-9_.]*$"
-    )
+    field_key: str = Field(min_length=1, max_length=160, pattern=r"^[a-z][a-z0-9_.]*$")
     label: str = Field(min_length=1, max_length=250)
     data_type: str = Field(min_length=1, max_length=50, pattern=r"^[a-z][a-z0-9_]*$")
     raw_value: Any | None = None
     normalized_value: Any | None = None
     status: ExtractedFieldStatus
     is_critical: bool = False
-    confidence: Decimal | None = Field(
-        default=None, ge=0, le=1, max_digits=5, decimal_places=4
-    )
+    confidence: Decimal | None = Field(default=None, ge=0, le=1, max_digits=5, decimal_places=4)
     anchors: list[EvidenceAnchorWrite] = Field(default_factory=list, max_length=50)
 
     _label = field_validator("label")(normalized_text)
@@ -83,9 +79,7 @@ class ExtractedFieldWrite(BaseModel):
 class ExtractionResultCreate(BaseModel):
     parse_id: UUID
     result_key: str = Field(min_length=8, max_length=200, pattern=r"^[A-Za-z0-9._:-]+$")
-    schema_name: str = Field(
-        min_length=1, max_length=100, pattern=r"^[a-z][a-z0-9_.]*$"
-    )
+    schema_name: str = Field(min_length=1, max_length=100, pattern=r"^[a-z][a-z0-9_.]*$")
     schema_version: str = Field(min_length=1, max_length=80)
     fields: list[ExtractedFieldWrite] = Field(min_length=1, max_length=1000)
 

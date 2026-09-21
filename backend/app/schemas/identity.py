@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 class OrganizationBootstrapRequest(BaseModel):
@@ -20,6 +20,77 @@ class OrganizationBootstrapRequest(BaseModel):
         if not stripped:
             raise ValueError("Name cannot be blank")
         return stripped
+
+
+class OrganizationSignupRequest(OrganizationBootstrapRequest):
+    """OIDC-backed organization signup; the bearer identity becomes its administrator."""
+
+
+class RoleCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    permission_codes: list[str] = Field(min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def strip_role_name(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("permission_codes")
+    @classmethod
+    def unique_permissions(cls, value: list[str]) -> list[str]:
+        if len(set(value)) != len(value):
+            raise ValueError("permission_codes must be unique")
+        return value
+
+
+class RoleRead(BaseModel):
+    id: UUID
+    name: str
+    description: str | None
+    is_system: bool
+    permission_codes: list[str]
+
+
+class MemberInviteCreate(BaseModel):
+    email: EmailStr
+    display_name: str = Field(min_length=1, max_length=200)
+    role_ids: list[UUID] = Field(min_length=1, max_length=20)
+
+    @field_validator("display_name")
+    @classmethod
+    def strip_display_name(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("role_ids")
+    @classmethod
+    def unique_roles(cls, value: list[UUID]) -> list[UUID]:
+        if len(set(value)) != len(value):
+            raise ValueError("role_ids must be unique")
+        return value
+
+
+class MembershipUpdate(BaseModel):
+    status: str | None = Field(default=None, pattern=r"^(active|suspended|revoked)$")
+    role_ids: list[UUID] | None = Field(default=None, min_length=1, max_length=20)
+
+    @model_validator(mode="after")
+    def require_change(self) -> "MembershipUpdate":
+        if self.status is None and self.role_ids is None:
+            raise ValueError("At least one membership change is required")
+        if self.role_ids is not None and len(set(self.role_ids)) != len(self.role_ids):
+            raise ValueError("role_ids must be unique")
+        return self
+
+
+class MemberRead(BaseModel):
+    membership_id: UUID
+    user_id: UUID
+    email: EmailStr
+    display_name: str
+    status: str
+    role_ids: list[UUID]
+    joined_at: datetime | None
 
 
 class OrganizationBootstrapResponse(BaseModel):

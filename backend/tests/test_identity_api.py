@@ -6,7 +6,13 @@ from pydantic import ValidationError
 
 from app.core.config import Settings
 from app.main import app
-from app.schemas.identity import OrganizationBootstrapRequest, OrganizationSettingsWrite
+from app.schemas.identity import (
+    MemberInviteCreate,
+    MembershipUpdate,
+    OrganizationBootstrapRequest,
+    OrganizationSettingsWrite,
+    RoleCreate,
+)
 from app.services.identity import PERMISSION_CATALOG, BootstrapDeniedError, verify_bootstrap_key
 
 
@@ -17,6 +23,9 @@ def test_identity_routes_are_in_openapi() -> None:
     assert "/api/v1/organizations/dev-bootstrap" in schema["paths"]
     assert "/api/v1/organizations/current" in schema["paths"]
     assert "/api/v1/organizations/current/settings" in schema["paths"]
+    assert "/api/v1/organizations/current/members" in schema["paths"]
+    assert "/api/v1/organizations/current/members/{membership_id}" in schema["paths"]
+    assert "/api/v1/organizations/current/roles" in schema["paths"]
     assert "/api/v1/requisitions" in schema["paths"]
     assert "/api/v1/requisitions/{requisition_id}/submit" in schema["paths"]
     assert "/api/v1/budgets" in schema["paths"]
@@ -39,10 +48,10 @@ def test_identity_routes_are_in_openapi() -> None:
     assert (
         "/api/v1/documents/{document_id}/versions/{version_id}/complete-upload" in schema["paths"]
     )
-    assert "/api/v1/documents/versions/{version_id}/scan-results" in schema["paths"]
-    assert "/api/v1/documents/versions/{version_id}/parse-results" in schema["paths"]
+    assert "/api/v1/documents/versions/{version_id}/scan-results" not in schema["paths"]
+    assert "/api/v1/documents/versions/{version_id}/parse-results" not in schema["paths"]
     assert "/api/v1/documents/versions/{version_id}/download" in schema["paths"]
-    assert "/api/v1/document-versions/{version_id}/extractions" in schema["paths"]
+    assert "/api/v1/document-versions/{version_id}/extractions" not in schema["paths"]
     assert "/api/v1/extractions/{extraction_id}/fields/{field_id}/review" in schema["paths"]
     assert "/api/v1/extractions/{extraction_id}/finalize" in schema["paths"]
     assert "/api/v1/rfqs/{rfq_id}/evaluations" in schema["paths"]
@@ -95,3 +104,17 @@ def test_settings_effective_time_requires_timezone() -> None:
         OrganizationSettingsWrite(
             settings={"currency": "PKR"}, effective_from=datetime(2026, 9, 19, 10, 0)
         )
+
+
+def test_multi_user_schemas_reject_duplicate_assignments_and_empty_updates() -> None:
+    role_id = "11111111-1111-1111-1111-111111111111"
+    with pytest.raises(ValidationError, match="unique"):
+        RoleCreate(name="Buyer", permission_codes=["orders.read", "orders.read"])
+    with pytest.raises(ValidationError, match="unique"):
+        MemberInviteCreate(
+            email="buyer@example.com",
+            display_name="Buyer",
+            role_ids=[role_id, role_id],
+        )
+    with pytest.raises(ValidationError, match="change"):
+        MembershipUpdate()

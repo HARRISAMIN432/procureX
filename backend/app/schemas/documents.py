@@ -128,9 +128,7 @@ class DocumentPageWrite(BaseModel):
     text: str = Field(max_length=2_000_000)
     width: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=4)
     height: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=4)
-    ocr_confidence: Decimal | None = Field(
-        default=None, ge=0, le=1, max_digits=5, decimal_places=4
-    )
+    ocr_confidence: Decimal | None = Field(default=None, ge=0, le=1, max_digits=5, decimal_places=4)
     tables: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
 
 
@@ -141,9 +139,7 @@ class ParseResultCreate(BaseModel):
     kind: ParseKind
     status: ParseStatus
     pages: list[DocumentPageWrite] = Field(default_factory=list, max_length=500)
-    error_code: str | None = Field(
-        default=None, max_length=100, pattern=r"^[a-z][a-z0-9_]*$"
-    )
+    error_code: str | None = Field(default=None, max_length=100, pattern=r"^[a-z][a-z0-9_]*$")
     error_detail: str | None = Field(default=None, max_length=5000)
 
     _parser = field_validator("parser")(normalized_text)

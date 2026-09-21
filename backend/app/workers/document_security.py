@@ -1,5 +1,10 @@
+import errno
 import hashlib
+import json
+import resource
 import subprocess
+import sys
+import tempfile
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,6 +12,8 @@ from typing import BinaryIO
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+import pyseccomp  # type: ignore[import-untyped]
 
 
 class DocumentSecurityError(RuntimeError):
@@ -19,6 +26,10 @@ class DocumentIntegrityError(DocumentSecurityError):
 
 class ScannerExecutionError(DocumentSecurityError):
     """The malware scanner could not produce a trustworthy verdict."""
+
+
+class ParserExecutionError(DocumentSecurityError):
+    """The isolated parser could not produce a bounded structured result."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,3 +169,66 @@ def scan_with_clamav(
             finding=detail or "malware_detected",
         )
     raise ScannerExecutionError("Malware scanner failed without a verdict")
+
+
+def run_sandboxed_parser(
+    path: Path,
+    media_type: str,
+    *,
+    parser_command: Sequence[str],
+    timeout_seconds: float,
+    memory_bytes: int,
+    output_bytes: int,
+) -> dict[str, object]:
+    """Execute the parser with no network and strict OS/process/output limits."""
+    if not parser_command:
+        raise ParserExecutionError("Document parser command is not configured")
+
+    def apply_limits() -> None:
+        cpu_seconds = max(1, min(int(timeout_seconds), 300))
+        resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
+        resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+        resource.setrlimit(resource.RLIMIT_FSIZE, (output_bytes, output_bytes))
+        resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
+        resource.setrlimit(resource.RLIMIT_NPROC, (256, 256))
+        network_filter = pyseccomp.SyscallFilter(defaction=pyseccomp.ALLOW)
+        for syscall in ("socket", "socketpair"):
+            network_filter.add_rule(pyseccomp.ERRNO(errno.EPERM), syscall)
+        network_filter.load()
+
+    command = [*parser_command, str(path), media_type]
+    try:
+        with tempfile.TemporaryFile() as output:
+            result = subprocess.run(  # noqa: S603
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=output,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=timeout_seconds,
+                cwd=path.parent,
+                env={
+                    "HOME": str(path.parent),
+                    "LANG": "C.UTF-8",
+                    "OPENBLAS_NUM_THREADS": "1",
+                    "OMP_NUM_THREADS": "1",
+                    "PATH": f"{Path(sys.executable).parent}:/usr/local/bin:/usr/bin:/bin",
+                    "PYTHONUNBUFFERED": "1",
+                },
+                preexec_fn=apply_limits,
+            )
+            output.seek(0)
+            raw = output.read(output_bytes + 1)
+    except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
+        raise ParserExecutionError("Document parser was unavailable or timed out") from exc
+    if len(raw) > output_bytes:
+        raise ParserExecutionError("Document parser output exceeded its safety limit")
+    try:
+        payload = json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ParserExecutionError("Document parser returned invalid structured output") from exc
+    if not isinstance(payload, dict):
+        raise ParserExecutionError("Document parser returned an invalid result object")
+    if result.returncode != 0 and "error_code" not in payload:
+        raise ParserExecutionError("Document parser failed without a structured error")
+    return {str(key): value for key, value in payload.items()}

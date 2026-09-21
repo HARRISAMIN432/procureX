@@ -1,8 +1,9 @@
+import sys
 from enum import StrEnum
 from functools import lru_cache
 from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, computed_field, model_validator
+from pydantic import Field, SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +17,11 @@ class Environment(StrEnum):
 class AuthMode(StrEnum):
     DEV_HEADERS = "dev_headers"
     OIDC = "oidc"
+
+
+class TaskExecutionMode(StrEnum):
+    BROKER = "broker"
+    EAGER = "eager"
 
 
 class Settings(BaseSettings):
@@ -44,6 +50,7 @@ class Settings(BaseSettings):
     oidc_algorithms: list[str] = Field(default_factory=lambda: ["RS256"])
     oidc_clock_skew_seconds: int = Field(default=30, ge=0, le=300)
     oidc_jwks_timeout_seconds: float = Field(default=5, gt=0, le=30)
+    allow_self_service_organization_signup: bool = False
 
     database_url: str = "postgresql+asyncpg://procurex:procurex@localhost:5432/procurex"
     database_echo: bool = False
@@ -62,9 +69,18 @@ class Settings(BaseSettings):
     document_download_timeout_seconds: float = Field(default=30, gt=0, le=120)
     document_scan_timeout_seconds: float = Field(default=60, gt=0, le=300)
     document_scanner_command: list[str] = Field(default_factory=lambda: ["clamscan"])
+    document_parse_timeout_seconds: float = Field(default=120, gt=0, le=600)
+    document_parser_memory_bytes: int = Field(default=768 * 1024 * 1024, ge=128 * 1024 * 1024)
+    document_parser_output_bytes: int = Field(
+        default=20 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024
+    )
+    document_parser_command: list[str] = Field(
+        default_factory=lambda: [sys.executable, "-m", "app.workers.document_parser"]
+    )
 
     rabbitmq_url: SecretStr = SecretStr("amqp://procurex:procurex@localhost:5672//")
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")
+    task_execution_mode: TaskExecutionMode = TaskExecutionMode.BROKER
 
     langgraph_checkpoint_database_url: SecretStr | None = None
     llm_provider: str = "gemini"
@@ -74,6 +90,16 @@ class Settings(BaseSettings):
     llm_max_retries: int = Field(default=2, ge=0, le=5)
     evaluation_evidence_limit: int = Field(default=120, gt=0, le=500)
     evaluation_evidence_max_chars: int = Field(default=60_000, ge=1_000, le=500_000)
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_async_database_url(cls, value: object) -> object:
+        if isinstance(value, str):
+            if value.startswith("postgres://"):
+                return value.replace("postgres://", "postgresql+asyncpg://", 1)
+            if value.startswith("postgresql://"):
+                return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return value
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -129,6 +155,8 @@ class Settings(BaseSettings):
                 not part.strip() for part in self.document_scanner_command
             ):
                 raise ValueError("Staging and production require a document scanner command")
+            if not self.document_parser_command:
+                raise ValueError("Staging and production require a document parser command")
             unsafe_hosts = [
                 host
                 for host in self.allowed_hosts

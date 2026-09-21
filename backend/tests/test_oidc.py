@@ -52,6 +52,24 @@ async def test_oidc_verifies_signature_and_required_claims() -> None:
 
 
 @pytest.mark.asyncio
+async def test_oidc_only_trusts_email_marked_verified() -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    verified = await authenticate_bearer_token(
+        oidc_settings(),
+        f"Bearer {token(private_key, email='ADMIN@EXAMPLE.COM', email_verified=True)}",
+        key_client=StaticKeyClient(private_key.public_key()),
+    )
+    unverified = await authenticate_bearer_token(
+        oidc_settings(),
+        f"Bearer {token(private_key, email='admin@example.com', email_verified=False)}",
+        key_client=StaticKeyClient(private_key.public_key()),
+    )
+    assert verified.email == "admin@example.com"
+    assert verified.email_verified is True
+    assert unverified.email_verified is False
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "claims",
     [

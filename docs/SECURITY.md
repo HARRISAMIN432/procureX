@@ -26,8 +26,10 @@ the reserved identity, declared size, and Cloudinary response signature before r
 The asset remains quarantined until a separately permissioned scanner reports clean. The scan
 worker independently downloads the signed authenticated asset without following redirects, bounds
 the response, verifies both its byte count and SHA-256, and runs ClamAV with a timeout. Operational
-or integrity failures fail closed and leave the asset quarantined for a bounded retry. Parser/OCR
-isolation and hostile-input staging evidence remain incomplete.
+or integrity failures fail closed and leave the asset quarantined for a bounded retry. Parsing
+re-verifies the immutable source and runs in a separate process with seccomp-denied sockets; CPU,
+memory, file, process, timeout, output, archive, page, worksheet, and image limits bound hostile
+inputs. A real Cloudinary/ClamAV hostile-input staging drill remains incomplete.
 
 User downloads require `documents.read`, a tenant-scoped version lookup, a post-clean-scan version
 state, and a verified asset. The API returns an authenticated Cloudinary URL with a configurable
@@ -67,10 +69,12 @@ development header mechanism enabled.
 OIDC bearer authentication validates the token signature through the configured HTTPS JWKS URL,
 pins an allowlist of asymmetric algorithms, and requires issuer, audience, subject, issued-at, and
 expiry claims with bounded clock skew. JWKS retrieval is cached and executed off the async request
-loop with a bounded timeout. The verified provider subject maps to a pre-provisioned active user;
-the separately supplied organization context must resolve to an active membership before tenant
-RLS context and permissions are established. Unknown, disabled, expired, incorrectly signed, or
-wrong-audience principals fail closed. ProcureX does not auto-provision users from token claims.
+loop with a bounded timeout. A tenant administrator can invite an email; first sign-in binds the
+provider subject only when the provider marks the same email verified. Self-service organization
+creation is disabled by default and, when enabled, requires that verified email to match the
+requested administrator. The separately supplied organization context must resolve to an active
+membership before tenant RLS context and permissions are established. Unknown, disabled, expired,
+incorrectly signed, wrong-audience, and unverified-email principals fail closed.
 The implementation follows the provider JWKS mechanism in
 [OpenID Connect Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html) and pins the
 issuer/audience/algorithm checks supported by
@@ -86,6 +90,11 @@ terminates at the deployment edge; the edge must redirect plaintext traffic befo
 Unhandled application errors are converted to a generic request-ID-bearing response. Completion
 telemetry records only safe request metadata and exception class—not query strings, request bodies,
 credentials, supplier content, or exception messages that may embed sensitive provider details.
+
+Malware, parser, and machine-extraction results are internal worker operations, not tenant HTTP
+endpoints. This prevents an organization administrator from marking a quarantined asset clean or
+injecting forged page/field evidence. Parser subprocesses have network syscalls denied and bounded
+CPU, memory, process, file, archive, page, worksheet, and serialized-output limits.
 
 Approval requests bind immutable requisition and policy versions. Distinct approvers are enforced
 by a database uniqueness constraint, requester self-approval can be prohibited by policy, and the

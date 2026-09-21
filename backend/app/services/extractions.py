@@ -117,9 +117,7 @@ async def create_extraction(
     )
     if existing is not None:
         if existing.content_digest != digest:
-            raise ExtractionConflictError(
-                "Extraction result key was reused with different content"
-            )
+            raise ExtractionConflictError("Extraction result key was reused with different content")
         return await read_extraction(context, existing.id)
     if version.status is not DocumentVersionStatus.PARSED:
         raise ExtractionConflictError(f"Document version is {version.status.value}")
@@ -143,9 +141,7 @@ async def create_extraction(
             )
         )
     }
-    referenced_pages = {
-        anchor.page_number for field in payload.fields for anchor in field.anchors
-    }
+    referenced_pages = {anchor.page_number for field in payload.fields for anchor in field.anchors}
     if not referenced_pages.issubset(pages):
         raise ExtractionValidationError("One or more evidence anchors reference an unknown page")
     current_version = await context.session.scalar(
@@ -326,7 +322,9 @@ async def review_field(
         reviewed_value = (
             payload.normalized_value
             if payload.action is ReviewAction.CORRECT
-            else field.normalized_value if field.normalized_value is not None else field.raw_value
+            else field.normalized_value
+            if field.normalized_value is not None
+            else field.raw_value
         )
         if reviewed_value is None:
             raise ExtractionValidationError("A verified field requires a value")

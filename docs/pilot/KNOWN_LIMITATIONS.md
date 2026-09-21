@@ -7,11 +7,15 @@ application, so the P8 accessible-critical-screen gate and end-to-end user accep
 Supplier submissions and acknowledgements remain controlled intake APIs rather than a proven,
 isolated supplier portal.
 
+OIDC-backed organization signup, verified-email invitation acceptance, tenant roles, and member
+lifecycle APIs are implemented, but no email delivery or administration UI exists and the selected
+identity provider still requires a staging provisioning/revocation/key-rotation drill.
+
 Other open release blockers:
 
-- parser/OCR execution and an evidence viewer are not integrated; the new byte/hash-verifying
-  ClamAV worker still requires a configured Cloudinary account, scanner image, and hostile-input
-  staging drill before it is release evidence;
+- document scan and parser/OCR workers are integrated, but they still require a configured
+  Cloudinary account, current ClamAV signatures, production worker image, and hostile-input staging
+  drill before they constitute release evidence; the evidence viewer remains absent;
 - Cloudinary reconciliation, deletion, backup, and restore have not been exercised against a
   selected account and retention policy;
 - the database restore CLI is non-production only and no live restore evidence exists in this

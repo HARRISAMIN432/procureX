@@ -69,9 +69,17 @@ for local authenticated requests. Staging and production configuration rejects t
 requires OIDC mode.
 
 For deployed OIDC, configure `PROCUREX_OIDC_ISSUER`, `PROCUREX_OIDC_AUDIENCE`, and the provider's
-HTTPS `PROCUREX_OIDC_JWKS_URL`. Bearer subjects must already exist in `users.external_subject` and
-hold an active membership in the selected `X-Organization-ID`; token claims never auto-provision
-access. Only configured asymmetric signature algorithms are accepted.
+HTTPS `PROCUREX_OIDC_JWKS_URL`. Bearer subjects must hold an active membership in the selected
+`X-Organization-ID`. Administrators can invite members and assign roles through
+`/api/v1/organizations/current/members`; a first login accepts an invite only from a
+provider-verified matching email. Optional self-service organization signup is guarded by
+`PROCUREX_ALLOW_SELF_SERVICE_ORGANIZATION_SIGNUP`. Only configured asymmetric signature algorithms
+are accepted.
+
+The repository root contains a Render Blueprint for a no-cost demonstration deployment. Read
+[`../docs/DEPLOY_RENDER.md`](../docs/DEPLOY_RENDER.md) before using it: Render's free database,
+in-memory task mode, cold starts, and lack of a free worker make it unsuitable for customer data or
+a commercial production SLA.
 
 Implemented organization endpoints are documented in
 [`../docs/API.md`](../docs/API.md#implemented-identity-endpoints).
@@ -114,9 +122,19 @@ uv run celery -A app.workers.celery_app:celery_app worker \
   --queues documents.security --loglevel INFO
 ```
 
-Clean scans then enqueue an idempotent parse job. Native/OCR/hybrid workers can record digest-bound,
-replay-safe attempts with ordered page text and tables; a successful attempt advances the immutable
-document version to `parsed`. Parser execution and structured extraction remain subsequent P4 work.
+Clean scans then dispatch an idempotent parse job to `documents.parsing`. The parser runs in a
+separate process with seccomp-denied network sockets plus CPU, memory, file-descriptor, process,
+timeout, archive-expansion, page, worksheet, and output limits. It performs native PDF/DOCX/XLSX
+extraction and Tesseract OCR for images or image-only PDF pages, and records replay-safe ordered
+page text and tables. Run both document queues with:
+
+```bash
+uv run celery -A app.workers.celery_app:celery_app worker \
+  --queues documents.security,documents.parsing --loglevel INFO
+```
+
+Successful parsing advances the immutable version to `parsed`. Structured extraction execution
+remains subsequent integration work.
 
 Structured extraction results can now be recorded against completed parses with page-level evidence
 anchors. Human reviewers verify/correct/reject fields under optimistic revisions; critical fields
