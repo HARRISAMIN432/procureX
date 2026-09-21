@@ -27,5 +27,6 @@ templates. Billing is manual so the demonstration profile has no paid billing de
 - [Security](docs/SECURITY.md)
 - [Decisions](docs/DECISIONS.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Sell-readiness status](docs/SELL_READINESS.md)
 - [Render deployment](docs/DEPLOY_RENDER.md)
 - [Commercial operations](docs/COMMERCIAL_OPERATIONS.md)
