@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from app.auth.context import RequestContext
 from app.core.config import Settings
 from app.core.database import SessionFactory
+from app.models.commercial import OrganizationSubscription
 from app.models.identity import (
     Membership,
     MembershipRole,
@@ -48,6 +49,14 @@ PERMISSION_CATALOG: dict[str, str] = {
     "analysis.read": "View AI analysis runs and evidence",
     "analysis.run": "Start and resume AI analysis runs",
     "audit.read": "View organization audit events",
+    "commercial.read": "View plan, entitlements, and usage",
+    "organization.data.export": "Export all organization data",
+    "organization.lifecycle.manage": "Schedule or cancel organization closure",
+    "support.read": "View organization support cases",
+    "support.write": "Create support cases",
+    "support.manage": "Manage and resolve support cases",
+    "operations.after_sales.read": "View returns, replacements, disputes, and credits",
+    "operations.after_sales.write": "Create and resolve after-sales cases",
     "requisitions.read": "View requisitions in the organization",
     "requisitions.write": "Create and edit draft requisitions",
     "requisitions.submit": "Submit requisitions for approval",
@@ -206,6 +215,20 @@ async def bootstrap_organization(
                     name="Organization administrator",
                     description="Built-in full organization administration role",
                     is_system=True,
+                ),
+                OrganizationSubscription(
+                    organization_id=organization_id,
+                    plan_code="community",
+                    status="active",
+                    billing_mode="manual",
+                    seat_limit=5,
+                    storage_limit_bytes=536_870_912,
+                    ai_run_limit_monthly=25,
+                    entitlements={
+                        "audit_export": True,
+                        "supplier_portal": False,
+                        "accounting_export": True,
+                    },
                 ),
             ]
         )
@@ -401,6 +424,22 @@ async def _validated_roles(context: RequestContext, role_ids: list[uuid.UUID]) -
 
 
 async def invite_member(context: RequestContext, payload: MemberInviteCreate) -> MemberRead:
+    subscription = await context.session.scalar(
+        select(OrganizationSubscription).where(
+            OrganizationSubscription.organization_id == context.organization_id
+        )
+    )
+    if subscription is not None:
+        seats_used = await context.session.scalar(
+            select(func.count())
+            .select_from(Membership)
+            .where(
+                Membership.organization_id == context.organization_id,
+                Membership.status.in_([MembershipStatus.ACTIVE, MembershipStatus.INVITED]),
+            )
+        )
+        if int(seats_used or 0) >= subscription.seat_limit:
+            raise IdentityConflictError(f"Seat limit reached for the {subscription.plan_code} plan")
     role_ids = await _validated_roles(context, payload.role_ids)
     email = str(payload.email).lower()
     user = await context.session.scalar(select(User).where(func.lower(User.email) == email))

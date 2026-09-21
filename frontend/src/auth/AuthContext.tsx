@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { UserManager, WebStorageStateStore, type User } from "oidc-client-ts";
 import type { Session } from "../types";
+import { API_URL } from "../lib/api";
 
 const STORAGE_KEY = "procurex.session";
 const authMode = (import.meta.env.VITE_AUTH_MODE || "dev") as "dev" | "oidc";
@@ -22,10 +23,13 @@ type AuthValue = {
   session: Session | null; ready: boolean; authMode: "dev" | "oidc";
   loginDev: (organizationId: string, userId: string, displayName: string) => void;
   loginOidc: (organizationId: string) => Promise<void>;
+  signupOidc: (details: SignupDetails) => Promise<void>;
   completeOidc: () => Promise<void>;
   logout: () => Promise<void>;
   setOrganization: (id: string) => void;
 };
+
+export type SignupDetails = { organizationName: string; organizationSlug: string; adminEmail: string; adminDisplayName: string; defaultCurrency: string; timezone: string };
 
 const AuthContext = createContext<AuthValue | null>(null);
 
@@ -66,11 +70,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.setItem("procurex.organization", organizationId);
       await manager.signinRedirect({ state: { organizationId } });
     },
+    signupOidc: async (details) => {
+      if (!manager) throw new Error("OIDC is not configured.");
+      sessionStorage.setItem("procurex.signup", JSON.stringify(details));
+      await manager.signinRedirect({ state: { signup: true } });
+    },
     completeOidc: async () => {
       if (!manager) throw new Error("OIDC is not configured.");
       const user = await manager.signinRedirectCallback();
       const state = user.state as { organizationId?: string } | undefined;
-      const organizationId = state?.organizationId || sessionStorage.getItem("procurex.organization") || "";
+      let organizationId = state?.organizationId || sessionStorage.getItem("procurex.organization") || "";
+      if ((state as { signup?: boolean } | undefined)?.signup) {
+        const raw = sessionStorage.getItem("procurex.signup");
+        if (!raw) throw new Error("Signup details expired. Please start again.");
+        const details = JSON.parse(raw) as SignupDetails;
+        const response = await fetch(`${API_URL}/api/v1/organizations`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${user.access_token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ organization_name: details.organizationName, organization_slug: details.organizationSlug, admin_email: details.adminEmail, admin_display_name: details.adminDisplayName, default_currency: details.defaultCurrency, timezone: details.timezone }),
+        });
+        const payload = await response.json() as { organization_id?: string; detail?: { message?: string } };
+        if (!response.ok || !payload.organization_id) throw new Error(payload.detail?.message || "Workspace creation failed.");
+        organizationId = payload.organization_id;
+        sessionStorage.removeItem("procurex.signup");
+        sessionStorage.setItem("procurex.organization", organizationId);
+      }
       setSession(fromUser(user, organizationId));
     },
     logout: async () => {

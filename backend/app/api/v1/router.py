@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.routes import (
     approvals,
     awards,
+    commercial,
     documents,
     evaluations,
     extractions,
@@ -15,6 +16,7 @@ from app.api.v1.routes import (
 
 api_router = APIRouter()
 api_router.include_router(organizations.router)
+api_router.include_router(commercial.router)
 api_router.include_router(requisitions.router)
 api_router.include_router(approvals.router)
 api_router.include_router(awards.router)

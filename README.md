@@ -10,6 +10,10 @@ A free-tier Render demonstration Blueprint is included at [`render.yaml`](render
 [`docs/DEPLOY_RENDER.md`](docs/DEPLOY_RENDER.md) first; the free-tier limits make it unsuitable for
 customer production data.
 
+The commercial foundation uses a free community plan with seat/storage enforcement, auditable
+support cases, tenant data export, reversible closure, after-sales cases, and legal/operations
+templates. Billing is manual so the demonstration profile has no paid billing dependency.
+
 ## Documentation map
 
 - [Project](docs/PROJECT.md)
@@ -24,3 +28,4 @@ customer production data.
 - [Decisions](docs/DECISIONS.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Render deployment](docs/DEPLOY_RENDER.md)
+- [Commercial operations](docs/COMMERCIAL_OPERATIONS.md)

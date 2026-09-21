@@ -14,6 +14,7 @@ from app.api.v1.router import api_router
 from app.core.config import Environment, Settings, get_settings
 from app.core.database import SessionFactory, close_database
 from app.core.http_security import SecurityHeadersMiddleware
+from app.core.rate_limit import RateLimitMiddleware
 
 logger = logging.getLogger(__name__)
 ReadinessProbe = Callable[[], Awaitable[None]]
@@ -60,6 +61,11 @@ def create_app(
             "X-User-ID",
             "X-Dev-Bootstrap-Key",
         ],
+    )
+    application.add_middleware(
+        RateLimitMiddleware,
+        requests=configured.rate_limit_requests,
+        window_seconds=configured.rate_limit_window_seconds,
     )
     application.add_middleware(
         SecurityHeadersMiddleware,

@@ -4,6 +4,7 @@ from app import models  # noqa: F401
 from app.db.base import Base
 
 EXPECTED_TABLES = {
+    "after_sales_cases",
     "accounting_exports",
     "accounting_sandbox_entries",
     "allocation_scenarios",
@@ -16,6 +17,10 @@ EXPECTED_TABLES = {
     "role_permissions",
     "membership_roles",
     "organization_settings",
+    "organization_subscriptions",
+    "organization_closure_requests",
+    "data_export_requests",
+    "support_cases",
     "documents",
     "document_versions",
     "delivery_receipts",

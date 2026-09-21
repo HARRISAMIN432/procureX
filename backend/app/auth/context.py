@@ -15,6 +15,8 @@ from app.models.identity import (
     Membership,
     MembershipRole,
     MembershipStatus,
+    Organization,
+    OrganizationStatus,
     Permission,
     RolePermission,
     User,
@@ -116,6 +118,17 @@ async def get_request_context(
             text("SELECT set_config('app.current_organization_id', :organization_id, true)"),
             {"organization_id": str(organization_id)},
         )
+        organization_status = await session.scalar(
+            select(Organization.status).where(Organization.id == organization_id)
+        )
+        if organization_status in {OrganizationStatus.SUSPENDED, OrganizationStatus.CLOSED}:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "organization_inactive",
+                    "message": "Organization access is suspended or closed",
+                },
+            )
         membership_id = await session.scalar(
             select(Membership.id).where(
                 Membership.organization_id == organization_id,

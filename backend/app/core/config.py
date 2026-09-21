@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     database_max_overflow: int = 20
     readiness_timeout_seconds: float = Field(default=3.0, ge=0.05, le=30)
     slow_request_threshold_ms: int = Field(default=1000, ge=1, le=60_000)
+    rate_limit_requests: int = Field(default=120, ge=10, le=10_000)
+    rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
 
     cloudinary_cloud_name: str | None = None
     cloudinary_api_key: SecretStr | None = None

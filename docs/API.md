@@ -266,6 +266,17 @@ billing, tolerances, and invoice inputs. Quantity, price, currency, tax, freight
 duplicate failures create durable exception rows. Accounting export uses one row per invoice, a
 stable `PX-INVOICE-{invoice_id}` reference, and a payload digest for retry safety.
 
+## Commercial operations endpoints
+
+- `GET /api/v1/commercial/overview` returns the tenant plan, entitlements, seat usage, document
+  storage usage, and open support count.
+- `POST /api/v1/commercial/data-export` produces an audited JSON export of tenant-owned records.
+- `POST /api/v1/commercial/closure` schedules reversible workspace closure after explicit typed
+  confirmation; `POST /api/v1/commercial/closure/{id}/cancel` cancels it during the grace period.
+- `GET|POST|PATCH /api/v1/commercial/support-cases` manages tenant-scoped support cases.
+- `GET|POST|PATCH /api/v1/commercial/after-sales` records returns, replacements, disputes, and
+  credit requests against purchase orders.
+
 ## Events
 
 Business state and an `outbox_events` row are committed in one transaction. Consumers assume

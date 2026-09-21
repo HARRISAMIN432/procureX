@@ -27,8 +27,10 @@ Other open release blockers:
 - no representative-user accessibility, usability, security review, or pilot acceptance record
   exists;
 - the allocation timing evidence is a local synthetic benchmark, not a production load test; and
-- payment execution, production accounting connectors, full returns/credits/disputes, and broader
-  R2 operations remain outside the controlled-pilot scope.
+- after-sales case management now records returns, replacements, disputes, and credit requests, and
+  the commercial foundation covers manual plans, quotas, support, export, and reversible closure;
+  payment execution, automated billing, production accounting connectors, final asset erasure, and
+  broader R2 operations remain outside the controlled-pilot scope.
 
 These are release blockers, not silently accepted risks. P8 can be marked complete only after the
 evidence matrix in `P8_EXIT.md` records passing evidence and named acceptance for every gate.

@@ -1,0 +1,9 @@
+import { Link, useParams } from "react-router-dom";
+
+const pages = {
+  terms: ["Terms of Service", "ProcureX provides procurement workflow software. Customers remain responsible for supplier selection, approvals, purchases, regulatory compliance, account security, and submitted data. Subscription scope, support targets, retention, and termination terms are defined in the applicable order form."],
+  privacy: ["Privacy Notice", "ProcureX processes identity, organization, supplier, procurement, document, and operational telemetry data to provide and secure the service. Customer data is isolated by organization and is not sold. Authorized administrators can export workspace data and request closure."],
+  security: ["Security Overview", "ProcureX uses OIDC authentication, role-based authorization, PostgreSQL row-level isolation, audit events, signed private documents, malware scanning, integrity hashes, encrypted transport, and human approval boundaries."],
+} as const;
+
+export default function LegalPage() { const { document = "terms" } = useParams(); const page = pages[document as keyof typeof pages] || pages.terms; return <main className="legal-page"><Link to="/login" className="auth-brand"><div className="brand-mark">PX</div><strong>ProcureX</strong></Link><article><p className="eyebrow">Service information</p><h1>{page[0]}</h1><p className="legal-date">Draft product notice · 21 September 2026</p><p>{page[1]}</p><h2>Important deployment notice</h2><p>This repository includes operational templates, not jurisdiction-specific legal advice. The operator must replace placeholder notices with counsel-approved terms and disclose the services and regions actually selected before accepting customer data.</p><nav><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/security">Security</Link></nav></article></main>; }

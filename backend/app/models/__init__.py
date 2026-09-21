@@ -8,6 +8,13 @@ from app.models.approvals import (
     BudgetReservation,
 )
 from app.models.awards import AllocationLine, AllocationScenario, Award, AwardDecision
+from app.models.commercial import (
+    AfterSalesCase,
+    DataExportRequest,
+    OrganizationClosureRequest,
+    OrganizationSubscription,
+    SupportCase,
+)
 from app.models.documents import (
     CloudinaryAsset,
     Document,
@@ -111,6 +118,11 @@ __all__ = [
     "Organization",
     "OrganizationSetting",
     "OutboxEvent",
+    "OrganizationSubscription",
+    "DataExportRequest",
+    "OrganizationClosureRequest",
+    "SupportCase",
+    "AfterSalesCase",
     "PurchaseOrder",
     "PurchaseOrderLine",
     "PurchaseOrderVersion",

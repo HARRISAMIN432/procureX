@@ -13,6 +13,7 @@ from app.core.cloudinary import (
     verify_document_upload_response,
 )
 from app.core.config import Settings
+from app.models.commercial import OrganizationSubscription
 from app.models.documents import (
     AssetStatus,
     CloudinaryAsset,
@@ -133,6 +134,21 @@ async def create_upload_intent(
         raise DocumentValidationError(
             f"File exceeds the {settings.document_max_upload_bytes}-byte upload limit"
         )
+    subscription = await context.session.scalar(
+        select(OrganizationSubscription).where(
+            OrganizationSubscription.organization_id == context.organization_id
+        )
+    )
+    if subscription is not None:
+        stored_bytes = await context.session.scalar(
+            select(func.coalesce(func.sum(DocumentVersion.byte_size), 0)).where(
+                DocumentVersion.organization_id == context.organization_id
+            )
+        )
+        if int(stored_bytes or 0) + payload.byte_size > subscription.storage_limit_bytes:
+            raise DocumentValidationError(
+                f"Organization storage limit reached for the {subscription.plan_code} plan"
+            )
     now = datetime.now(UTC)
     expires_at = now + timedelta(seconds=settings.document_upload_intent_ttl_seconds)
     document = Document(

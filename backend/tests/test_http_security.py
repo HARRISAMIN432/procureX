@@ -160,3 +160,22 @@ def test_slow_request_is_logged_as_warning(caplog: pytest.LogCaptureFixture) -> 
     )
     assert record.levelno == logging.WARNING
     assert record.duration_ms >= 1
+
+
+def test_api_rate_limit_returns_retry_after_and_security_headers() -> None:
+    application = create_app(
+        Settings(rate_limit_requests=10, rate_limit_window_seconds=60, _env_file=None)
+    )
+
+    @application.get("/rate-limit-drill")
+    async def rate_limit_drill() -> dict[str, str]:
+        return {"status": "ok"}
+
+    with TestClient(application) as client:
+        responses = [client.get("/rate-limit-drill") for _ in range(11)]
+
+    assert all(response.status_code == 200 for response in responses[:10])
+    assert responses[-1].status_code == 429
+    assert responses[-1].headers["retry-after"]
+    assert responses[-1].headers["x-content-type-options"] == "nosniff"
+    assert responses[-1].json()["detail"]["code"] == "rate_limit_exceeded"
