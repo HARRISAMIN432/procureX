@@ -59,7 +59,7 @@ checks.
 ## Secret handling
 
 Local values live in `backend/.env`, which is ignored. Staging and production load secrets from a
-managed secret store. Cloudinary API secrets, model keys, database credentials, and signing keys
+managed secret store. Cloudinary API secrets, Resend API keys, model keys, database credentials, and signing keys
 must never enter logs, graph state, audit payloads, fixtures, or source control.
 
 Development header authentication is explicitly limited to local/test configuration. Staging and
@@ -79,6 +79,11 @@ Workspace discovery is a narrow pre-tenant operation: a PostgreSQL security-defi
 returns only active/invited memberships bound to the authenticated provider subject, or unclaimed
 invitations matching a provider-verified email. It does not establish tenant access; ordinary
 requests still require membership validation and a transaction-local RLS tenant context.
+Invitation email uses the server-side Resend API, never exposes the API key to the browser, escapes
+user-controlled template values, applies a bounded timeout, and uses a stable membership-scoped
+idempotency key across its three delivery attempts. The membership stores only provider delivery
+state, a safe error code, attempt count, provider message ID, and acceptance time. Provider webhook
+verification and bounce/complaint suppression remain required before customer production.
 The implementation follows the provider JWKS mechanism in
 [OpenID Connect Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html) and pins the
 issuer/audience/algorithm checks supported by

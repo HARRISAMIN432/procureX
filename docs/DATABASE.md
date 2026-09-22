@@ -78,6 +78,11 @@ Global tables are limited to `users` and the permission catalog. Organization lo
 authenticated context selection requires a narrowly scoped path; ordinary domain access occurs
 after tenant context is established.
 
+Each membership also carries invitation delivery state (`queued`, `sending`, `sent`,
+`retry_scheduled`, or `failed`), a bounded attempt count, safe failure code, provider message ID,
+and provider-acceptance timestamp. This makes retries and administrator visibility durable without
+storing message content or provider credentials.
+
 ## Migration rules
 
 1. Generate an Alembic revision for every schema change.

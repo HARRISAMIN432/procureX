@@ -9,7 +9,7 @@ critical-screen gate and end-to-end acceptance cannot yet pass. Supplier submiss
 acknowledgements remain controlled buyer-side intake rather than supplier self-service.
 
 OIDC-backed organization signup, verified-email invitation acceptance, tenant roles, member
-lifecycle APIs, and administration UI are implemented, but invitation email delivery and the
+lifecycle APIs, invitation email delivery/retry, and administration UI are implemented, but the
 selected identity provider's staging provisioning/revocation/key-rotation drill remain outstanding.
 
 Other open release blockers:

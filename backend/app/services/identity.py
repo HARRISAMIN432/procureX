@@ -437,6 +437,9 @@ async def _member_view(context: RequestContext, membership: Membership) -> Membe
         status=membership.status.value,
         role_ids=role_ids,
         joined_at=membership.joined_at,
+        invitation_email_status=membership.invitation_email_status,
+        invitation_email_attempts=membership.invitation_email_attempts,
+        invitation_email_sent_at=membership.invitation_email_sent_at,
     )
 
 
@@ -508,6 +511,7 @@ async def invite_member(context: RequestContext, payload: MemberInviteCreate) ->
         status=MembershipStatus.ACTIVE if already_active else MembershipStatus.INVITED,
         invited_by_user_id=context.user_id,
         joined_at=datetime.now(UTC) if already_active else None,
+        invitation_email_status="queued",
     )
     context.session.add(membership)
     await context.session.flush()
@@ -531,6 +535,38 @@ async def invite_member(context: RequestContext, payload: MemberInviteCreate) ->
             object_id=membership.id,
             object_version=1,
             changes={"user_id": str(user.id), "role_ids": sorted(map(str, role_ids))},
+        )
+    )
+    await context.session.flush()
+    return await _member_view(context, membership)
+
+
+async def queue_invitation_email(
+    context: RequestContext, membership_id: uuid.UUID
+) -> MemberRead:
+    membership = await context.session.scalar(
+        select(Membership)
+        .where(
+            Membership.organization_id == context.organization_id,
+            Membership.id == membership_id,
+            Membership.status.in_([MembershipStatus.INVITED, MembershipStatus.ACTIVE]),
+        )
+        .with_for_update()
+    )
+    if membership is None:
+        raise IdentityNotFoundError("Invited membership not found")
+    membership.invitation_email_status = "queued"
+    membership.invitation_email_error_code = None
+    context.session.add(
+        AuditEvent(
+            organization_id=context.organization_id,
+            actor_type=ActorType.USER,
+            actor_id=context.user_id,
+            action="organization.invitation_email_queued",
+            object_type="membership",
+            object_id=membership.id,
+            object_version=membership.invitation_email_attempts + 1,
+            changes={"recipient_user_id": str(membership.user_id)},
         )
     )
     await context.session.flush()

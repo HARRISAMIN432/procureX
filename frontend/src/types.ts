@@ -38,7 +38,7 @@ export type Budget = {
   status: string; available: string; reserved: string; committed: string; consumed: string;
 };
 export type Role = { id: string; name: string; description?: string; is_system: boolean; permission_codes: string[] };
-export type Member = { membership_id: string; user_id: string; email: string; display_name: string; status: string; role_ids: string[]; joined_at?: string };
+export type Member = { membership_id: string; user_id: string; email: string; display_name: string; status: string; role_ids: string[]; joined_at?: string; invitation_email_status: string; invitation_email_attempts: number; invitation_email_sent_at?: string };
 
 export type Session = {
   mode: "dev" | "oidc";

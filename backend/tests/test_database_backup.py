@@ -12,7 +12,7 @@ from app.admin.database_backup import (
     restore_backup,
     verify_backup,
 )
-from app.core.config import AuthMode, Environment, Settings
+from app.core.config import AuthMode, EmailProvider, Environment, Settings
 
 
 def test_postgres_target_keeps_password_out_of_command_arguments() -> None:
@@ -139,6 +139,10 @@ def test_local_archive_tool_is_disabled_in_production(tmp_path: Path) -> None:
         cloudinary_api_key="key",
         cloudinary_api_secret="secret",
         gemini_api_key="model-key",
+        email_provider=EmailProvider.RESEND,
+        resend_api_key="resend-key",
+        email_from="ProcureX <invites@procurex.example>",
+        web_app_url="https://app.procurex.example",
         allowed_hosts=["api.procurex.example"],
         cors_allowed_origins=["https://app.procurex.example"],
         _env_file=None,

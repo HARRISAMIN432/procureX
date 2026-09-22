@@ -26,6 +26,10 @@ def test_identity_routes_are_in_openapi() -> None:
     assert "/api/v1/organizations/current/settings" in schema["paths"]
     assert "/api/v1/organizations/current/members" in schema["paths"]
     assert "/api/v1/organizations/current/members/{membership_id}" in schema["paths"]
+    assert (
+        "/api/v1/organizations/current/members/{membership_id}/resend-invitation"
+        in schema["paths"]
+    )
     assert "/api/v1/organizations/current/roles" in schema["paths"]
     assert "/api/v1/requisitions" in schema["paths"]
     assert "/api/v1/requisitions/{requisition_id}/submit" in schema["paths"]

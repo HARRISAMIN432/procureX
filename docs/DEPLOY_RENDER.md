@@ -9,12 +9,15 @@ not hold customer procurement documents.
 1. Connect the repository as a Render Blueprint and review the generated `procurex-web`,
    `procurex-api`, and `procurex-db` resources.
 2. Supply the Blueprint's prompted secrets: OIDC issuer, audience and JWKS URL; Cloudinary cloud
-   name, key and secret; and a Gemini API key. Use separate development/provider projects.
+   name, key and secret; a Gemini API key; and a Resend API key plus a sender such as
+   `ProcureX <invites@your-domain.example>`. Verify that sender domain in Resend first. Use separate
+   development/provider projects.
 3. Set the frontend OIDC authority and client ID. Register
    `https://procurex-web.onrender.com/auth/callback` with the provider. If Render changes either
    service slug, update `VITE_API_URL`, `PROCUREX_ALLOWED_HOSTS`, and
    `PROCUREX_CORS_ALLOWED_ORIGINS` to the actual HTTPS hostnames.
-4. Deploy. The free-demo start command applies Alembic migrations before starting the API. Check
+4. Set `PROCUREX_EMAIL_REPLY_TO` if replies should go to a monitored support inbox. Deploy. The
+   free-demo start command applies Alembic migrations before starting the API. Check
    `/health/ready`, then create the first organization through `POST /api/v1/organizations` with an
    OIDC access token whose verified email matches `admin_email`.
 5. Create tenant roles, invite members, and assign roles through the organization endpoints. Every
@@ -48,7 +51,7 @@ Before onboarding a paying customer:
    runtime role;
 3. set `PROCUREX_TASK_EXECUTION_MODE=broker`, provision durable RabbitMQ/Redis, and deploy dedicated
    document and AI workers;
-4. use separate production OIDC, Cloudinary, and model projects with rotation procedures;
+4. use separate production OIDC, Cloudinary, model, and Resend projects with rotation procedures;
 5. disable self-service signup unless plan/entitlement and abuse controls are implemented;
 6. deploy the buyer and supplier web applications and complete WCAG 2.2 AA verification; and
 7. execute every external drill and acceptance item in `release-evidence/P8_EXIT.md`.

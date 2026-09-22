@@ -5,7 +5,7 @@ import re
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.config import AuthMode, Environment, Settings
+from app.core.config import AuthMode, EmailProvider, Environment, Settings
 from app.main import create_app
 
 
@@ -20,6 +20,10 @@ def production_settings() -> Settings:
         cloudinary_api_key="key",
         cloudinary_api_secret="secret",
         gemini_api_key="model-key",
+        email_provider=EmailProvider.RESEND,
+        resend_api_key="resend-key",
+        email_from="ProcureX <invites@procurex.example>",
+        web_app_url="https://app.procurex.example",
         allowed_hosts=["api.procurex.example"],
         cors_allowed_origins=["https://app.procurex.example"],
         _env_file=None,

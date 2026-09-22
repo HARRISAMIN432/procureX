@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import AuthMode, Environment, Settings
+from app.core.config import AuthMode, EmailProvider, Environment, Settings
 
 
 def test_local_settings_have_safe_defaults() -> None:
@@ -82,6 +82,10 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
         "cloudinary_api_key": "key",
         "cloudinary_api_secret": "secret",
         "gemini_api_key": "model-key",
+        "email_provider": EmailProvider.RESEND,
+        "resend_api_key": "resend-key",
+        "email_from": "ProcureX <invites@procurex.example>",
+        "web_app_url": "https://app.procurex.example",
         "allowed_hosts": ["api.procurex.example"],
         "cors_allowed_origins": ["https://app.procurex.example"],
         "_env_file": None,
@@ -104,6 +108,10 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
         ({"oidc_jwks_url": None}, "JWKS URL"),
         ({"oidc_jwks_url": "http://identity.example.com/jwks"}, "HTTPS OIDC JWKS"),
         ({"oidc_algorithms": ["HS256"]}, "asymmetric"),
+        ({"email_provider": EmailProvider.DISABLED}, "EMAIL_PROVIDER=resend"),
+        ({"resend_api_key": ""}, "RESEND_API_KEY"),
+        ({"email_from": "ProcureX <onboarding@resend.dev>"}, "custom email sender"),
+        ({"web_app_url": "http://app.procurex.example"}, "HTTPS web app URL"),
     ],
 )
 def test_deployed_settings_reject_unsafe_http_edge_configuration(

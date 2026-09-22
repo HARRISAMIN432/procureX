@@ -85,6 +85,16 @@ services:
         sync: false
       - key: PROCUREX_GEMINI_API_KEY
         sync: false
+      - key: PROCUREX_EMAIL_PROVIDER
+        value: resend
+      - key: PROCUREX_RESEND_API_KEY
+        sync: false
+      - key: PROCUREX_EMAIL_FROM
+        sync: false
+      - key: PROCUREX_EMAIL_REPLY_TO
+        sync: false
+      - key: PROCUREX_WEB_APP_URL
+        value: https://procurex-web.onrender.com
 
 databases:
   - name: procurex-db

@@ -24,6 +24,11 @@ class TaskExecutionMode(StrEnum):
     EAGER = "eager"
 
 
+class EmailProvider(StrEnum):
+    DISABLED = "disabled"
+    RESEND = "resend"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -60,6 +65,13 @@ class Settings(BaseSettings):
     slow_request_threshold_ms: int = Field(default=1000, ge=1, le=60_000)
     rate_limit_requests: int = Field(default=120, ge=10, le=10_000)
     rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
+
+    email_provider: EmailProvider = EmailProvider.DISABLED
+    resend_api_key: SecretStr | None = None
+    email_from: str = "ProcureX <onboarding@resend.dev>"
+    email_reply_to: str | None = None
+    web_app_url: str = "http://localhost:5173"
+    email_timeout_seconds: float = Field(default=10, gt=0, le=30)
 
     cloudinary_cloud_name: str | None = None
     cloudinary_api_key: SecretStr | None = None
@@ -153,6 +165,15 @@ class Settings(BaseSettings):
                 raise ValueError("Staging and production must disable debug mode")
             if self.database_echo:
                 raise ValueError("Staging and production must disable database statement logging")
+            if self.email_provider is not EmailProvider.RESEND:
+                raise ValueError("Staging and production require PROCUREX_EMAIL_PROVIDER=resend")
+            if self.resend_api_key is None or not self.resend_api_key.get_secret_value().strip():
+                raise ValueError("Staging and production require PROCUREX_RESEND_API_KEY")
+            if "@" not in self.email_from or "@resend.dev" in self.email_from.lower():
+                raise ValueError("Staging and production require a verified custom email sender")
+            web_app = urlsplit(self.web_app_url)
+            if web_app.scheme != "https" or web_app.hostname is None:
+                raise ValueError("Staging and production require an HTTPS web app URL")
             if not self.document_scanner_command or any(
                 not part.strip() for part in self.document_scanner_command
             ):

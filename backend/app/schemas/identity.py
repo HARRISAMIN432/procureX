@@ -91,6 +91,9 @@ class MemberRead(BaseModel):
     status: str
     role_ids: list[UUID]
     joined_at: datetime | None
+    invitation_email_status: str
+    invitation_email_attempts: int
+    invitation_email_sent_at: datetime | None
 
 
 class OrganizationBootstrapResponse(BaseModel):

@@ -36,7 +36,9 @@ production service profile.
   least-privilege runtime role.
 - Configure and exercise the selected OIDC provider, including invitation acceptance, revocation,
   key rotation, and account recovery.
-- Implement invitation email delivery and user-facing notification delivery/retry behavior.
+- Verify the Resend sender domain in the production account and exercise delivery, bounce, and
+  complaint webhooks in staging. Invitation send/retry state and the administrator retry action
+  are implemented.
 - Finish complete buyer workflow screens. Evaluations, awards, orders, invoices, approvals,
   document review, and after-sales operations still rely partly on generic records, UUID lookup, or
   backend-only APIs.

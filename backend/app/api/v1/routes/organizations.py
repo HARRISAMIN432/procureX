@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, status
 from sqlalchemy import select
 
 from app.auth.context import RequestContext, require_permission
@@ -35,9 +35,11 @@ from app.services.identity import (
     list_members,
     list_principal_workspaces,
     list_roles,
+    queue_invitation_email,
     update_membership,
     verify_bootstrap_key,
 )
+from app.workers.notifications import enqueue_invitation_email
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
@@ -187,9 +189,14 @@ async def members(
 async def add_member(
     payload: MemberInviteCreate,
     context: Annotated[RequestContext, Depends(require_permission("organization.members.manage"))],
+    background_tasks: BackgroundTasks,
 ) -> MemberRead:
     try:
-        return await invite_member(context, payload)
+        member = await invite_member(context, payload)
+        background_tasks.add_task(
+            enqueue_invitation_email, context.organization_id, member.membership_id
+        )
+        return member
     except IdentityNotFoundError as exc:
         raise HTTPException(
             status_code=404, detail={"code": "role_not_found", "message": str(exc)}
@@ -198,6 +205,28 @@ async def add_member(
         raise HTTPException(
             status_code=409,
             detail={"code": "membership_conflict", "message": str(exc)},
+        ) from exc
+
+
+@router.post(
+    "/current/members/{membership_id}/resend-invitation",
+    response_model=MemberRead,
+)
+async def resend_member_invitation(
+    membership_id: UUID,
+    context: Annotated[RequestContext, Depends(require_permission("organization.members.manage"))],
+    background_tasks: BackgroundTasks,
+) -> MemberRead:
+    try:
+        member = await queue_invitation_email(context, membership_id)
+        background_tasks.add_task(
+            enqueue_invitation_email, context.organization_id, member.membership_id
+        )
+        return member
+    except IdentityNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "membership_not_found", "message": str(exc)},
         ) from exc
 
 

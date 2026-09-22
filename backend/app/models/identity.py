@@ -99,6 +99,20 @@ class Membership(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         UniqueConstraint("organization_id", "user_id"),
         UniqueConstraint("organization_id", "id"),
+        CheckConstraint(
+            "invitation_email_status IN "
+            "('not_applicable','queued','sending','sent','retry_scheduled','failed')",
+            name="membership_invitation_email_status",
+        ),
+        CheckConstraint(
+            "invitation_email_attempts >= 0",
+            name="membership_invitation_email_attempts",
+        ),
+        Index(
+            "ix_memberships_invitation_email_status",
+            "organization_id",
+            "invitation_email_status",
+        ),
     )
 
     organization_id: Mapped[uuid.UUID] = mapped_column(
@@ -118,6 +132,15 @@ class Membership(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     joined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    invitation_email_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="not_applicable", server_default="not_applicable"
+    )
+    invitation_email_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    invitation_email_provider_id: Mapped[str | None] = mapped_column(String(255))
+    invitation_email_error_code: Mapped[str | None] = mapped_column(String(100))
+    invitation_email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Role(UUIDPrimaryKeyMixin, TimestampMixin, Base):

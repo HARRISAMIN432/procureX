@@ -56,6 +56,7 @@ dependency checks, preventing a database outage from turning into a process rest
 | `GET /api/v1/organizations/current/members` | `organization.members.read` |
 | `POST /api/v1/organizations/current/members` | `organization.members.manage` |
 | `PATCH /api/v1/organizations/current/members/{membership_id}` | `organization.members.manage` |
+| `POST /api/v1/organizations/current/members/{membership_id}/resend-invitation` | `organization.members.manage` |
 | `GET /api/v1/organizations/current/settings` | `organization.settings.read` |
 | `PUT /api/v1/organizations/current/settings` | `organization.settings.write` |
 
@@ -71,6 +72,9 @@ Local requests may identify their development principal with `X-Organization-ID`
 selected `X-Organization-ID`. Administrators invite a verified email and assign tenant-scoped
 roles; first sign-in binds only a matching provider-verified email to the invitation. Existing
 provider subjects can join additional organizations through an invitation. Self-service
+organization invitations are delivered through Resend with a stable idempotency key, three
+retry attempts, delivery state on the membership, and an administrator retry action. `sent` means
+the provider accepted the message; bounce and complaint processing still require provider webhooks.
 organization creation is separately configurable and requires the request email to match the
 verified token claim. Configuration pins the
 HTTPS issuer/JWKS URL, audience, asymmetric algorithms, clock skew, and JWKS timeout. Development

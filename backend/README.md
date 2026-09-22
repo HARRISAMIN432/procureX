@@ -76,6 +76,23 @@ provider-verified matching email. Optional self-service organization signup is g
 `PROCUREX_ALLOW_SELF_SERVICE_ORGANIZATION_SIGNUP`. Only configured asymmetric signature algorithms
 are accepted.
 
+## Invitation email
+
+ProcureX sends organization invitations through Resend. Create a free Resend account, verify the
+sending domain, then configure `PROCUREX_EMAIL_PROVIDER=resend`, `PROCUREX_RESEND_API_KEY`,
+`PROCUREX_EMAIL_FROM`, and the public `PROCUREX_WEB_APP_URL`. `PROCUREX_EMAIL_REPLY_TO` is optional.
+The invitation worker uses a membership-scoped idempotency key, retries transient delivery failures
+three times, and exposes delivery state plus a manual retry action to organization administrators.
+Run the notification queue with:
+
+```bash
+uv run celery -A app.workers.celery_app:celery_app worker \
+  --queues notifications.email --loglevel INFO
+```
+
+Provider acceptance is not proof of inbox delivery. Configure authenticated Resend webhooks and
+bounce/complaint suppression before using the system with paying customers.
+
 The repository root contains a Render Blueprint for a no-cost demonstration deployment. Read
 [`../docs/DEPLOY_RENDER.md`](../docs/DEPLOY_RENDER.md) before using it: Render's free database,
 in-memory task mode, cold starts, and lack of a free worker make it unsuitable for customer data or
