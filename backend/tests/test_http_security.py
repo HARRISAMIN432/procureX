@@ -106,6 +106,34 @@ def test_production_enables_hsts_and_disables_api_docs() -> None:
     assert schema.status_code == 404
 
 
+def test_render_assigned_hosts_are_accepted_without_wildcards() -> None:
+    settings = production_settings().model_copy(
+        update={
+            "render_external_hostname": "procurex-api-ab12.onrender.com",
+            "render_frontend_url": "https://procurex-web-cd34.onrender.com",
+        }
+    )
+    application = create_app(settings)
+    with TestClient(
+        application,
+        base_url="https://procurex-api-ab12.onrender.com",
+    ) as client:
+        health = client.get("/health/live")
+        preflight = client.options(
+            "/health/live",
+            headers={
+                "Origin": "https://procurex-web-cd34.onrender.com",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+    assert health.status_code == 200
+    assert preflight.status_code == 200
+    assert preflight.headers["access-control-allow-origin"] == (
+        "https://procurex-web-cd34.onrender.com"
+    )
+
+
 def test_unhandled_error_is_sanitized_correlated_and_logged(
     caplog: pytest.LogCaptureFixture,
 ) -> None:

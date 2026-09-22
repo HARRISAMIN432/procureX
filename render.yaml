@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
 services:
   - type: web
     name: procurex-web
@@ -28,7 +29,10 @@ services:
         value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https:"
     envVars:
       - key: VITE_API_URL
-        value: https://procurex-api.onrender.com
+        fromService:
+          name: procurex-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: VITE_AUTH_MODE
         value: oidc
       - key: VITE_OIDC_AUTHORITY
@@ -41,10 +45,12 @@ services:
     name: procurex-api
     runtime: docker
     plan: free
+    region: oregon
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     dockerCommand: /bin/sh -c 'alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}'
     healthCheckPath: /health/ready
+    maxShutdownDelaySeconds: 60
     autoDeployTrigger: checksPass
     envVars:
       - key: PROCUREX_ENVIRONMENT
@@ -56,13 +62,27 @@ services:
       - key: PROCUREX_ALLOW_SELF_SERVICE_ORGANIZATION_SIGNUP
         value: "true"
       - key: PROCUREX_ALLOWED_HOSTS
-        value: '["procurex-api.onrender.com"]'
+        value: '[]'
       - key: PROCUREX_CORS_ALLOWED_ORIGINS
-        value: '["https://procurex-web.onrender.com"]'
+        value: '[]'
+      - key: PROCUREX_RENDER_EXTERNAL_HOSTNAME
+        fromService:
+          name: procurex-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
+      - key: PROCUREX_RENDER_FRONTEND_URL
+        fromService:
+          name: procurex-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: PROCUREX_DATABASE_URL
         fromDatabase:
           name: procurex-db
           property: connectionString
+      - key: PROCUREX_DATABASE_POOL_SIZE
+        value: "5"
+      - key: PROCUREX_DATABASE_MAX_OVERFLOW
+        value: "5"
       - key: PROCUREX_TASK_EXECUTION_MODE
         value: eager
       - key: PROCUREX_RABBITMQ_URL
@@ -71,6 +91,8 @@ services:
         value: cache+memory://
       - key: PROCUREX_CLOUDINARY_FOLDER_PREFIX
         value: procurex/production
+      - key: PROCUREX_DOCUMENT_PARSER_MEMORY_BYTES
+        value: "268435456"
       - key: PROCUREX_OIDC_ISSUER
         sync: false
       - key: PROCUREX_OIDC_AUDIENCE
@@ -85,19 +107,25 @@ services:
         sync: false
       - key: PROCUREX_GEMINI_API_KEY
         sync: false
+      - key: PROCUREX_LLM_MODEL
+        value: gemini-3.1-flash-lite
       - key: PROCUREX_EMAIL_PROVIDER
         value: resend
       - key: PROCUREX_RESEND_API_KEY
         sync: false
       - key: PROCUREX_EMAIL_FROM
         sync: false
-      - key: PROCUREX_EMAIL_REPLY_TO
-        sync: false
       - key: PROCUREX_WEB_APP_URL
-        value: https://procurex-web.onrender.com
+        fromService:
+          name: procurex-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
 
 databases:
   - name: procurex-db
     plan: free
+    region: oregon
+    postgresMajorVersion: "17"
     databaseName: procurex
     user: procurex
+    ipAllowList: []

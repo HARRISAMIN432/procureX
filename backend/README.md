@@ -165,7 +165,7 @@ mandatory criteria, calculates exact landed costs and deterministic weighted sco
 each comparison as an immutable digest-bearing version. Quote submissions can bind immutable
 document versions; evaluation citations must resolve to verified fields from completed extractions
 of those documents. A Celery-backed `evaluation_graph` now retrieves only authorized verified
-evidence, generates a structured citation-grounded comparison with `gemini-3.1-pro-preview`,
+evidence, generates a structured citation-grounded comparison with `gemini-3.1-flash-lite`,
 validates every citation, persists invocation/run metadata, checkpoints in PostgreSQL, pauses on
 unresolved findings, and rejects stale resumes. Requirement outcomes and all commercial arithmetic
 remain reviewer/deterministic inputs.

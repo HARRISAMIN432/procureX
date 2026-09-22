@@ -9,18 +9,24 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
-from app.core.config import Settings, get_settings
+from app.core.config import Settings, TaskExecutionMode, get_settings
 
 
 def build_engine(settings: Settings) -> AsyncEngine:
-    return create_async_engine(
-        settings.database_url,
-        echo=settings.database_echo,
-        pool_pre_ping=True,
-        pool_size=settings.database_pool_size,
-        max_overflow=settings.database_max_overflow,
-    )
+    options: dict[str, object] = {
+        "echo": settings.database_echo,
+        "pool_pre_ping": True,
+    }
+    if settings.task_execution_mode is TaskExecutionMode.EAGER:
+        # Eager Celery tasks execute in Starlette's thread pool and create their own event loop.
+        # Async database connections are loop-bound, so they must not be shared with the API loop.
+        options["poolclass"] = NullPool
+    else:
+        options["pool_size"] = settings.database_pool_size
+        options["max_overflow"] = settings.database_max_overflow
+    return create_async_engine(settings.database_url, **options)
 
 
 settings = get_settings()

@@ -61,8 +61,7 @@ unresolved, and rejects a resume when the immutable evaluation digest has change
 
 ## Provider and execution
 
-- Provider: Gemini through `langchain-google-genai`; the repository default remains
-  `gemini-3.1-pro-preview`, while deployments may select a supported model such as the stable
+- Provider: Gemini through `langchain-google-genai`; the repository default is
   `gemini-3.1-flash-lite`. Provider generation uses a compatibility schema; the complete bounded
   Pydantic contract is always re-applied locally before output is accepted.
 - Durable queue boundary: Celery/RabbitMQ queue `ai.evaluations`, late acknowledgement, worker-loss

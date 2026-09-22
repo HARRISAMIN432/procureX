@@ -47,10 +47,13 @@ def create_app(
         openapi_url=None if production else "/openapi.json",
     )
     application.include_router(api_router, prefix=configured.api_v1_prefix)
-    application.add_middleware(TrustedHostMiddleware, allowed_hosts=configured.allowed_hosts)
+    application.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=configured.effective_allowed_hosts,
+    )
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=configured.cors_allowed_origins,
+        allow_origins=configured.effective_cors_allowed_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=[

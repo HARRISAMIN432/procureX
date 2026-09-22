@@ -23,6 +23,8 @@ RUN apt-get update \
         libseccomp2 \
         poppler-utils \
         tesseract-ocr \
+    && freshclam --stdout \
+    && clamscan --version \
     && rm -rf /var/lib/apt/lists/* \
     && addgroup --system procurex \
     && adduser --system --ingroup procurex procurex

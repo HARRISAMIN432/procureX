@@ -13,7 +13,7 @@ def test_local_settings_have_safe_defaults() -> None:
     assert settings.document_max_upload_bytes == 25 * 1024 * 1024
     assert settings.document_upload_intent_ttl_seconds == 600
     assert settings.llm_provider == "gemini"
-    assert settings.llm_model == "gemini-3.1-pro-preview"
+    assert settings.llm_model == "gemini-3.1-flash-lite"
 
 
 @pytest.mark.parametrize("scheme", ["postgres://", "postgresql://"])
@@ -119,3 +119,29 @@ def test_deployed_settings_reject_unsafe_http_edge_configuration(
 ) -> None:
     with pytest.raises(ValidationError, match=message):
         Settings(**deployed_settings(**override))
+
+
+def test_render_runtime_hosts_extend_the_exact_edge_allowlists() -> None:
+    settings = Settings(
+        **deployed_settings(
+            allowed_hosts=[],
+            cors_allowed_origins=[],
+            render_external_hostname="procurex-api-ab12.onrender.com",
+            render_frontend_url="https://procurex-web-cd34.onrender.com",
+            web_app_url="https://procurex-web-cd34.onrender.com",
+        )
+    )
+
+    assert settings.effective_allowed_hosts == ["procurex-api-ab12.onrender.com"]
+    assert settings.effective_cors_allowed_origins == [
+        "https://procurex-web-cd34.onrender.com"
+    ]
+
+
+@pytest.mark.parametrize(
+    "hostname",
+    ["https://procurex-api.onrender.com", "attacker.example", "*.onrender.com"],
+)
+def test_render_runtime_hostname_is_restricted(hostname: str) -> None:
+    with pytest.raises(ValidationError, match="Render external hostname"):
+        Settings(**deployed_settings(render_external_hostname=hostname))

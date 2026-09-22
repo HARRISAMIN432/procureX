@@ -46,6 +46,8 @@ class Settings(BaseSettings):
         default_factory=lambda: ["localhost", "127.0.0.1", "testserver"]
     )
     cors_allowed_origins: list[str] = Field(default_factory=list)
+    render_external_hostname: str | None = None
+    render_frontend_url: str | None = None
 
     auth_mode: AuthMode = AuthMode.DEV_HEADERS
     dev_bootstrap_key: SecretStr = SecretStr("local-development-only")
@@ -98,7 +100,7 @@ class Settings(BaseSettings):
 
     langgraph_checkpoint_database_url: SecretStr | None = None
     llm_provider: str = "gemini"
-    llm_model: str = "gemini-3.1-pro-preview"
+    llm_model: str = "gemini-3.1-flash-lite"
     gemini_api_key: SecretStr | None = None
     llm_timeout_seconds: float = Field(default=90, gt=0, le=300)
     llm_max_retries: int = Field(default=2, ge=0, le=5)
@@ -123,6 +125,22 @@ class Settings(BaseSettings):
             if configured_url:
                 return configured_url
         return self.database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def effective_allowed_hosts(self) -> list[str]:
+        hosts = list(self.allowed_hosts)
+        if self.render_external_hostname and self.render_external_hostname not in hosts:
+            hosts.append(self.render_external_hostname)
+        return hosts
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def effective_cors_allowed_origins(self) -> list[str]:
+        origins = list(self.cors_allowed_origins)
+        if self.render_frontend_url and self.render_frontend_url not in origins:
+            origins.append(self.render_frontend_url)
+        return origins
 
     @model_validator(mode="after")
     def validate_deployed_secrets(self) -> "Settings":
@@ -180,19 +198,30 @@ class Settings(BaseSettings):
                 raise ValueError("Staging and production require a document scanner command")
             if not self.document_parser_command:
                 raise ValueError("Staging and production require a document parser command")
+            if self.render_external_hostname is not None and (
+                not self.render_external_hostname.endswith(".onrender.com")
+                or ":" in self.render_external_hostname
+                or "/" in self.render_external_hostname
+                or "*" in self.render_external_hostname
+                or any(character.isspace() for character in self.render_external_hostname)
+            ):
+                raise ValueError("Render external hostname must be an onrender.com hostname")
             unsafe_hosts = [
                 host
-                for host in self.allowed_hosts
+                for host in self.effective_allowed_hosts
                 if not host.strip() or "*" in host or "://" in host or "/" in host
             ]
-            if not self.allowed_hosts or unsafe_hosts:
+            if not self.effective_allowed_hosts or unsafe_hosts:
                 raise ValueError("Staging and production require explicit trusted hosts")
-            if set(self.allowed_hosts) <= {"localhost", "127.0.0.1", "testserver"}:
+            if set(self.effective_allowed_hosts) <= {"localhost", "127.0.0.1", "testserver"}:
                 raise ValueError("Staging and production require non-local trusted hosts")
-            if not self.cors_allowed_origins or "*" in self.cors_allowed_origins:
+            if (
+                not self.effective_cors_allowed_origins
+                or "*" in self.effective_cors_allowed_origins
+            ):
                 raise ValueError("Staging and production require explicit CORS origins")
             insecure_origins = []
-            for origin in self.cors_allowed_origins:
+            for origin in self.effective_cors_allowed_origins:
                 parsed = urlsplit(origin)
                 if (
                     parsed.scheme != "https"
