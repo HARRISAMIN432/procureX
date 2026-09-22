@@ -19,6 +19,7 @@ from app.schemas.identity import (
     OrganizationSettingsRead,
     OrganizationSettingsWrite,
     OrganizationSignupRequest,
+    OrganizationWorkspaceRead,
     RoleCreate,
     RoleRead,
 )
@@ -32,12 +33,40 @@ from app.services.identity import (
     create_role,
     invite_member,
     list_members,
+    list_principal_workspaces,
     list_roles,
     update_membership,
     verify_bootstrap_key,
 )
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
+
+
+@router.get("/mine", response_model=list[OrganizationWorkspaceRead])
+async def principal_workspaces(
+    settings: Annotated[Settings, Depends(get_settings)],
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+) -> list[OrganizationWorkspaceRead]:
+    """Return selectable workspaces for a verified OIDC principal.
+
+    This endpoint intentionally does not accept a tenant header: it is the narrow pre-tenant
+    identity lookup used after provider sign-in. It never returns other users' memberships.
+    """
+    if settings.auth_mode is not AuthMode.OIDC:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    try:
+        principal = await authenticate_bearer_token(settings, authorization)
+        return await list_principal_workspaces(
+            external_subject=principal.subject,
+            email=principal.email,
+            email_verified=principal.email_verified,
+        )
+    except OIDCAuthenticationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "invalid_bearer_token", "message": str(exc)},
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
 
 
 @router.post("", response_model=OrganizationBootstrapResponse, status_code=status.HTTP_201_CREATED)

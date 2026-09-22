@@ -4,8 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from app.core.config import Settings
-from app.main import app
+from app.core.config import AuthMode, Settings
+from app.main import app, create_app
 from app.schemas.identity import (
     MemberInviteCreate,
     MembershipUpdate,
@@ -21,6 +21,7 @@ def test_identity_routes_are_in_openapi() -> None:
         schema = client.get("/openapi.json").json()
 
     assert "/api/v1/organizations/dev-bootstrap" in schema["paths"]
+    assert "/api/v1/organizations/mine" in schema["paths"]
     assert "/api/v1/organizations/current" in schema["paths"]
     assert "/api/v1/organizations/current/settings" in schema["paths"]
     assert "/api/v1/organizations/current/members" in schema["paths"]
@@ -62,6 +63,15 @@ def test_identity_routes_are_in_openapi() -> None:
     assert "/api/v1/purchase-orders/{purchase_order_id}/invoices" in schema["paths"]
     assert "/api/v1/invoices/{invoice_id}/match" in schema["paths"]
     assert "/api/v1/invoices/{invoice_id}/accounting-exports" in schema["paths"]
+
+
+def test_workspace_discovery_is_not_exposed_in_development_header_mode() -> None:
+    local_app = create_app(Settings(auth_mode=AuthMode.DEV_HEADERS, _env_file=None))
+
+    with TestClient(local_app) as client:
+        response = client.get("/api/v1/organizations/mine")
+
+    assert response.status_code == 404
 
 
 def test_bootstrap_schema_normalizes_names() -> None:

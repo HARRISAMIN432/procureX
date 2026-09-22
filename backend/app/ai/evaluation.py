@@ -10,6 +10,14 @@ from pydantic import BaseModel, Field, model_validator
 from app.core.config import Settings
 
 PROMPT_VERSION = "evaluation-comparison-v1"
+_PROVIDER_SCHEMA_CONSTRAINTS = {
+    "default",
+    "maxItems",
+    "maxLength",
+    "minItems",
+    "minLength",
+    "title",
+}
 
 
 class CitedFinding(BaseModel):
@@ -51,6 +59,30 @@ class GroundedComparisonSummary(BaseModel):
         return self
 
 
+def gemini_response_schema() -> dict[str, object]:
+    """Keep provider schema simple; enforce the full contract locally with Pydantic.
+
+    Gemini rejects this response model when all generated size constraints are sent together,
+    even though individual constraint keywords are documented. Removing generation hints does not
+    weaken the boundary because ``GroundedComparisonSummary`` validates every provider response.
+    """
+
+    def simplify(value: object) -> object:
+        if isinstance(value, dict):
+            return {
+                key: simplify(item)
+                for key, item in value.items()
+                if key not in _PROVIDER_SCHEMA_CONSTRAINTS
+            }
+        if isinstance(value, list):
+            return [simplify(item) for item in value]
+        return value
+
+    simplified = simplify(GroundedComparisonSummary.model_json_schema())
+    assert isinstance(simplified, dict)
+    return simplified
+
+
 @dataclass(frozen=True, slots=True)
 class ModelGeneration:
     summary: GroundedComparisonSummary
@@ -87,7 +119,7 @@ class GeminiComparisonModel:
             timeout=settings.llm_timeout_seconds,
             max_retries=settings.llm_max_retries,
         ).with_structured_output(
-            GroundedComparisonSummary,
+            gemini_response_schema(),
             method="json_schema",
             include_raw=True,
         )
@@ -115,13 +147,15 @@ class GeminiComparisonModel:
         )
         response = cast(dict[str, Any], raw_response)
         parsed = response.get("parsed")
-        if not isinstance(parsed, GroundedComparisonSummary):
+        try:
+            summary = GroundedComparisonSummary.model_validate(parsed)
+        except (TypeError, ValueError) as exc:
             parsing_error = response.get("parsing_error")
-            raise ValueError(f"Gemini returned invalid structured output: {parsing_error}")
+            raise ValueError(f"Gemini returned invalid structured output: {parsing_error}") from exc
         raw = response.get("raw")
         usage = getattr(raw, "usage_metadata", None) or {}
         return ModelGeneration(
-            summary=parsed,
+            summary=summary,
             provider="gemini",
             model=self._model_name,
             prompt_version=PROMPT_VERSION,

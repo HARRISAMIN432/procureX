@@ -16,12 +16,13 @@ import CommercialPage from "./pages/CommercialPage";
 import LegalPage from "./pages/LegalPage";
 import SourcingPage from "./pages/SourcingPage";
 import SuppliersPage from "./pages/SuppliersPage";
+import WorkspacePage from "./pages/WorkspacePage";
 
-function Protected() { const { session, ready } = useAuth(); if (!ready) return <main className="center-page"><Loading/></main>; return session ? <Shell/> : <Navigate to="/login" replace/>; }
+function Protected() { const { session, ready, authenticated } = useAuth(); if (!ready) return <main className="center-page"><Loading/></main>; return session ? <Shell/> : <Navigate to={authenticated ? "/workspaces" : "/login"} replace/>; }
 
 export default function App() {
   return <Routes>
-    <Route path="/login" element={<LoginPage/>}/><Route path="/auth/callback" element={<AuthCallback/>}/><Route path="/legal/:document" element={<LegalPage/>}/>
+    <Route path="/login" element={<LoginPage/>}/><Route path="/auth/callback" element={<AuthCallback/>}/><Route path="/workspaces" element={<WorkspacePage/>}/><Route path="/legal/:document" element={<LegalPage/>}/>
     <Route element={<Protected/>}>
       <Route index element={<Dashboard/>}/><Route path="requisitions" element={<RequisitionsPage/>}/><Route path="requisitions/:id" element={<RecordAlias type="requisition"/>}/>
       <Route path="suppliers" element={<SuppliersPage/>}/><Route path="sourcing" element={<SourcingPage/>}/><Route path="sourcing/:id" element={<RecordAlias type="rfq"/>}/>

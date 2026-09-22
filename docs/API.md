@@ -47,6 +47,7 @@ dependency checks, preventing a database outage from turning into a process rest
 | Endpoint | Permission / restriction |
 |---|---|
 | `POST /api/v1/organizations` | OIDC bearer with verified matching email; self-service signup must be enabled |
+| `GET /api/v1/organizations/mine` | OIDC bearer; lists only active memberships and verified-email invitations |
 | `POST /api/v1/organizations/dev-bootstrap` | Local/test only; `X-Dev-Bootstrap-Key` required |
 | `GET /api/v1/organizations/current` | `organization.read` |
 | `GET /api/v1/organizations/current/membership` | `organization.read` |
@@ -57,6 +58,13 @@ dependency checks, preventing a database outage from turning into a process rest
 | `PATCH /api/v1/organizations/current/members/{membership_id}` | `organization.members.manage` |
 | `GET /api/v1/organizations/current/settings` | `organization.settings.read` |
 | `PUT /api/v1/organizations/current/settings` | `organization.settings.write` |
+
+After OIDC sign-in, the web application discovers authorized workspaces through
+`/organizations/mine`; users no longer need to know or paste an organization UUID. Selecting a
+workspace establishes the existing explicit `X-Organization-ID` context, which is checked against
+the authenticated membership on every tenant request. The narrow pre-tenant lookup is implemented
+by a security-definer PostgreSQL function that returns only memberships matching the provider
+subject, or unclaimed invitations matching a provider-verified email.
 
 Local requests may identify their development principal with `X-Organization-ID` and
 `X-User-ID`. Staging and production require `Authorization: Bearer ...` plus the explicitly

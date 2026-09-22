@@ -4,6 +4,11 @@ export type Organization = {
   id: string; slug: string; name: string; status: string; default_currency: string; timezone: string;
 };
 export type MembershipContext = { organization_id: string; user_id: string; membership_id: string; permissions: string[] };
+export type Workspace = {
+  organization_id: string; organization_slug: string; organization_name: string;
+  organization_status: string; membership_id: string; membership_status: string;
+  is_pending_invitation: boolean;
+};
 export type Requisition = {
   id: string; title: string; justification: string; department?: string; cost_center?: string;
   currency: string; need_by_date?: string; status: string; version: number; updated_at: string;

@@ -113,6 +113,16 @@ class OrganizationRead(BaseModel):
     updated_at: datetime
 
 
+class OrganizationWorkspaceRead(BaseModel):
+    organization_id: UUID
+    organization_slug: str
+    organization_name: str
+    organization_status: str
+    membership_id: UUID
+    membership_status: str
+    is_pending_invitation: bool
+
+
 class MembershipContextRead(BaseModel):
     organization_id: UUID
     user_id: UUID

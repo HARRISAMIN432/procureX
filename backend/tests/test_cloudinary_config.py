@@ -19,13 +19,14 @@ def test_document_upload_options_are_private_and_immutable() -> None:
         settings,
         UUID("00000000-0000-0000-0000-000000000001"),
         UUID("00000000-0000-0000-0000-000000000002"),
+        media_type="application/pdf",
     )
 
     assert options["type"] == "authenticated"
     assert options["resource_type"] == "raw"
     assert options["overwrite"] is False
     assert options["public_id"].endswith(
-        "/00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000002"
+        "/00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000002.pdf"
     )
 
 
@@ -46,13 +47,17 @@ def test_signed_document_upload_is_scoped_and_uses_sha256() -> None:
         settings,
         UUID("00000000-0000-0000-0000-000000000001"),
         UUID("00000000-0000-0000-0000-000000000002"),
+        media_type="application/pdf",
         timestamp=1_800_000_000,
     )
 
     assert request["upload_url"].endswith("/procurex-test/raw/upload")
     assert request["parameters"]["type"] == "authenticated"
     assert request["parameters"]["resource_type"] == "raw"
-    assert request["parameters"]["overwrite"] is False
+    assert request["parameters"]["overwrite"] == "0"
+    assert request["parameters"]["unique_filename"] == "0"
+    assert request["parameters"]["use_filename"] == "0"
+    assert request["parameters"]["public_id"].endswith(".pdf")
     assert len(request["parameters"]["signature"]) == 64
 
 

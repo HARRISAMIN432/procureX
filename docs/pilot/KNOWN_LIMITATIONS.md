@@ -14,9 +14,9 @@ selected identity provider's staging provisioning/revocation/key-rotation drill 
 
 Other open release blockers:
 
-- document scan and parser/OCR workers are integrated, but they still require a configured
-  Cloudinary account, current ClamAV signatures, production worker image, and hostile-input staging
-  drill before they constitute release evidence; the evidence viewer remains absent;
+- document scan and parser/OCR workers are integrated, and a development Cloudinary signed-upload/
+  deletion plus clean-file ClamAV check has passed, but a production worker image and hostile-input
+  staging drill are still required; the evidence viewer remains absent;
 - Cloudinary reconciliation, deletion, backup, and restore have not been exercised against a
   selected account and retention policy;
 - the database restore CLI is non-production only and no live restore evidence exists in this

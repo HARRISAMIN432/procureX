@@ -18,6 +18,15 @@ class CloudinaryConfigurationError(RuntimeError):
     """Raised when Cloudinary is used without complete server credentials."""
 
 
+DOCUMENT_EXTENSIONS = {
+    "application/pdf": ".pdf",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+    "image/jpeg": ".jpeg",
+    "image/png": ".png",
+}
+
+
 def configure_cloudinary(settings: Settings) -> None:
     """Configure the server-side SDK without exposing secret values."""
     if (
@@ -39,10 +48,13 @@ def authenticated_document_upload_options(
     settings: Settings,
     organization_id: UUID,
     document_version_id: UUID,
+    *,
+    media_type: str | None = None,
 ) -> dict[str, Any]:
     """Return the enforced options for an immutable procurement document upload."""
     folder_prefix = settings.cloudinary_folder_prefix.strip("/")
-    public_id = f"{folder_prefix}/{organization_id}/{document_version_id}"
+    extension = DOCUMENT_EXTENSIONS.get(media_type or "", "")
+    public_id = f"{folder_prefix}/{organization_id}/{document_version_id}{extension}"
     return {
         "public_id": public_id,
         "resource_type": "raw",
@@ -58,6 +70,7 @@ def signed_document_upload_request(
     organization_id: UUID,
     document_version_id: UUID,
     *,
+    media_type: str | None = None,
     timestamp: int | None = None,
 ) -> dict[str, Any]:
     """Create a narrowly scoped signed request for a quarantined raw asset."""
@@ -66,19 +79,27 @@ def signed_document_upload_request(
     assert settings.cloudinary_api_secret is not None
     assert settings.cloudinary_cloud_name is not None
     issued_at = int(time.time()) if timestamp is None else timestamp
-    options = authenticated_document_upload_options(settings, organization_id, document_version_id)
+    options = authenticated_document_upload_options(
+        settings,
+        organization_id,
+        document_version_id,
+        media_type=media_type,
+    )
     signed_parameters = {
         "public_id": options["public_id"],
         "type": options["type"],
-        "overwrite": options["overwrite"],
-        "unique_filename": options["unique_filename"],
-        "use_filename": options["use_filename"],
+        # Match Cloudinary's canonical wire encoding. Browser FormData would otherwise stringify
+        # Python booleans as "False", producing a signature different from the provider's "0".
+        "overwrite": "0",
+        "unique_filename": "0",
+        "use_filename": "0",
         "timestamp": issued_at,
     }
     signature = api_sign_request(
         signed_parameters,
         settings.cloudinary_api_secret.get_secret_value(),
         algorithm=SIGNATURE_SHA256,
+        signature_version=2,
     )
     return {
         "upload_url": (

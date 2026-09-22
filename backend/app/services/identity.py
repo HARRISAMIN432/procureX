@@ -31,6 +31,7 @@ from app.schemas.identity import (
     OrganizationBootstrapRequest,
     OrganizationBootstrapResponse,
     OrganizationSettingsWrite,
+    OrganizationWorkspaceRead,
     RoleCreate,
     RoleRead,
 )
@@ -113,6 +114,35 @@ class IdentityConflictError(ValueError):
 
 class IdentityNotFoundError(ValueError):
     pass
+
+
+async def list_principal_workspaces(
+    *, external_subject: str, email: str | None, email_verified: bool
+) -> list[OrganizationWorkspaceRead]:
+    """List workspaces for an authenticated identity without opening tenant RLS broadly.
+
+    The security-definer database function exposes only active/invited memberships matching the
+    verified provider subject (or an unclaimed invitation matching a verified email address).
+    Ordinary domain access still requires selecting one workspace and establishing tenant context.
+    """
+    async with SessionFactory() as session, session.begin():
+        rows = await session.execute(
+            text(
+                """
+                SELECT organization_id, organization_slug, organization_name,
+                       organization_status, membership_id, membership_status,
+                       is_pending_invitation
+                FROM identity_workspaces(:external_subject, :email, :email_verified)
+                ORDER BY organization_name, organization_id
+                """
+            ),
+            {
+                "external_subject": external_subject,
+                "email": email,
+                "email_verified": email_verified,
+            },
+        )
+        return [OrganizationWorkspaceRead.model_validate(row._mapping) for row in rows]
 
 
 def verify_bootstrap_key(settings: Settings, supplied_key: str | None) -> None:
@@ -215,6 +245,18 @@ async def bootstrap_organization(
                     name="Organization administrator",
                     description="Built-in full organization administration role",
                     is_system=True,
+                ),
+                OrganizationSetting(
+                    organization_id=organization_id,
+                    version=1,
+                    settings={
+                        "currency": payload.default_currency,
+                        "timezone": payload.timezone,
+                        "default_payment_terms_days": 30,
+                        "require_po_for_invoice": True,
+                    },
+                    effective_from=now,
+                    created_by_user_id=user_id,
                 ),
                 OrganizationSubscription(
                     organization_id=organization_id,

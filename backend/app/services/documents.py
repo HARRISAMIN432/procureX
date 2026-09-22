@@ -184,7 +184,11 @@ async def create_upload_intent(
         },
     )
     signed_request = signed_document_upload_request(
-        settings, context.organization_id, version.id, timestamp=int(now.timestamp())
+        settings,
+        context.organization_id,
+        version.id,
+        media_type=payload.media_type,
+        timestamp=int(now.timestamp()),
     )
     await context.session.flush()
     return DocumentUploadIntentRead(
@@ -238,7 +242,10 @@ async def complete_upload(
     if version.upload_expires_at is None or now > version.upload_expires_at.astimezone(UTC):
         raise DocumentValidationError("Upload intent has expired")
     expected_public_id = authenticated_document_upload_options(
-        settings, context.organization_id, version.id
+        settings,
+        context.organization_id,
+        version.id,
+        media_type=version.media_type,
     )["public_id"]
     if payload.public_id != expected_public_id:
         raise DocumentValidationError("Uploaded asset does not match the reserved public ID")

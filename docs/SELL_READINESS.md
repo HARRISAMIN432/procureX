@@ -25,7 +25,10 @@ production service profile.
   cases, organization data export, reversible closure, and after-sales case records.
 - Legal, privacy, DPA, subprocessor, support, incident, and commercial-operation templates.
 - Free-tier Render demonstration blueprint and single-instance API rate limiting.
-- Local verification: Ruff, strict Mypy, frontend lint/build, 164 backend tests, and dependency audits.
+- Local verification: Ruff, strict Mypy, frontend lint/build, 166 backend tests, and dependency audits.
+- Development integration evidence for Neon, Cloudinary signed upload/deletion, Gemini structured
+  output, RabbitMQ, LangGraph PostgreSQL, and ClamAV is recorded in
+  [`release-evidence/LOCAL_INTEGRATION_2026-09-22.md`](release-evidence/LOCAL_INTEGRATION_2026-09-22.md).
 
 ## Required before a controlled pilot
 
@@ -39,8 +42,9 @@ production service profile.
   backend-only APIs.
 - Build a separately authenticated and tenant-isolated supplier portal for invitations, quotes,
   clarifications, documents, and order acknowledgement.
-- Exercise real Cloudinary upload/download/reconciliation/deletion and current ClamAV hostile-file
-  fixtures. Add the document evidence viewer and extraction-review experience.
+- Finish Cloudinary authorized-download/reconciliation drills and current ClamAV hostile-file
+  fixtures. Add the document evidence viewer and extraction-review experience. Signed upload,
+  response verification, and deletion have development evidence only.
 - Exercise job retries, broker restart, model outage, checkpoint recovery, and idempotent replay.
 - Run automated accessibility checks plus manual keyboard and screen-reader review.
 - Add frontend component and browser end-to-end tests for critical workflows.

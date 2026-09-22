@@ -75,6 +75,10 @@ creation is disabled by default and, when enabled, requires that verified email 
 requested administrator. The separately supplied organization context must resolve to an active
 membership before tenant RLS context and permissions are established. Unknown, disabled, expired,
 incorrectly signed, wrong-audience, and unverified-email principals fail closed.
+Workspace discovery is a narrow pre-tenant operation: a PostgreSQL security-definer function
+returns only active/invited memberships bound to the authenticated provider subject, or unclaimed
+invitations matching a provider-verified email. It does not establish tenant access; ordinary
+requests still require membership validation and a transaction-local RLS tenant context.
 The implementation follows the provider JWKS mechanism in
 [OpenID Connect Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html) and pins the
 issuer/audience/algorithm checks supported by
