@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Protocol, cast
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from uuid import UUID
 
 from app.core.config import EmailProvider, Settings
 
@@ -135,5 +136,78 @@ class ResendEmailClient:
             raise RetryableEmailDeliveryError(
                 "invalid_provider_response",
                 "Email provider did not return a message ID",
+            )
+        return EmailResult(provider_message_id=provider_id)
+
+    def send_supplier_invitation(
+        self,
+        *,
+        recipient_email: str,
+        recipient_name: str,
+        organization_name: str,
+        rfq_title: str,
+        deadline: str,
+        organization_id: UUID,
+        invitation_id: UUID,
+        publication_number: int,
+    ) -> EmailResult:
+        link = f"{self._web_app_url}/supplier/invitations/{organization_id}/{invitation_id}"
+        subject = f"{organization_name}: invitation to quote on {rfq_title}"
+        text_body = (
+            f"Hello {recipient_name},\n\n{organization_name} invites your company to quote on "
+            f"{rfq_title} (publication {publication_number}). Respond by {deadline}.\n\n"
+            f"Open your invitation: {link}\n\nSign in with this email address. "
+            "If this was unexpected, contact the buyer directly."
+        )
+        html_body = (
+            f"<p>Hello {html.escape(recipient_name)},</p>"
+            f"<p>{html.escape(organization_name)} invites your company to quote on "
+            f"<strong>{html.escape(rfq_title)}</strong> (publication {publication_number}). "
+            f"Respond by {html.escape(deadline)}.</p>"
+            f'<p><a href="{html.escape(link, quote=True)}">Open invitation</a> and sign in '
+            "with this email address.</p><p>If this was unexpected, contact the buyer directly.</p>"
+        )
+        payload: dict[str, object] = {
+            "from": self._from,
+            "to": [recipient_email],
+            "subject": subject,
+            "text": text_body,
+            "html": html_body,
+        }
+        if self._reply_to:
+            payload["reply_to"] = self._reply_to
+        request = Request(
+            self.endpoint,
+            data=json.dumps(payload, separators=(",", ":")).encode(),
+            headers={
+                "Authorization": f"Bearer {self._api_key}",
+                "Content-Type": "application/json",
+                "Idempotency-Key": f"supplier-invitation/{invitation_id}/{publication_number}",
+                "User-Agent": "ProcureX/1.0",
+            },
+            method="POST",
+        )
+        try:
+            response = self._opener(request, timeout=self._timeout)
+            body = json.loads(response.read())
+        except HTTPError as exc:
+            code = (
+                "provider_temporarily_unavailable"
+                if exc.code == 429 or exc.code >= 500
+                else "provider_rejected"
+            )
+            if exc.code == 429 or exc.code >= 500:
+                raise RetryableEmailDeliveryError(
+                    code, "Supplier email was temporarily rejected"
+                ) from exc
+            raise EmailDeliveryError(code, "Supplier email was rejected", retryable=False) from exc
+        except (URLError, TimeoutError, OSError, json.JSONDecodeError, TypeError) as exc:
+            raise RetryableEmailDeliveryError(
+                "provider_unavailable", "Supplier email could not be delivered"
+            ) from exc
+        provider_id = body.get("id") if isinstance(body, dict) else None
+        if not isinstance(provider_id, str) or not provider_id:
+            raise RetryableEmailDeliveryError(
+                "invalid_provider_response", "Email provider did not return a message ID"
             )
         return EmailResult(provider_message_id=provider_id)

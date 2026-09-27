@@ -3,8 +3,10 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from sqlalchemy import select
 
 from app.auth.context import RequestContext, require_permission
+from app.models.evaluations import Evaluation
 from app.schemas.evaluations import (
     AnalysisResume,
     AnalysisRunRead,
@@ -67,6 +69,21 @@ async def get_one(
     context: Annotated[RequestContext, Depends(require_permission("evaluations.read"))],
 ) -> EvaluationRead:
     return await execute(lambda: read_evaluation(context, evaluation_id))
+
+
+@router.get("/evaluations", response_model=list[EvaluationRead])
+async def list_all(
+    context: Annotated[RequestContext, Depends(require_permission("evaluations.read"))],
+) -> list[EvaluationRead]:
+    ids = list(
+        await context.session.scalars(
+            select(Evaluation.id)
+            .where(Evaluation.organization_id == context.organization_id)
+            .order_by(Evaluation.created_at.desc())
+            .limit(100)
+        )
+    )
+    return [await read_evaluation(context, item) for item in ids]
 
 
 @router.post(

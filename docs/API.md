@@ -141,14 +141,23 @@ implemented.
 | `GET /api/v1/rfqs/{id}` | `sourcing.read` | Return items, requirements, invitations, quote versions, and clarifications |
 | `PUT /api/v1/rfqs/{id}` | `sourcing.write` | Replace draft header/terms using `expected_version` |
 | `POST /api/v1/rfqs/{id}/invitations` | `sourcing.invite` | Add approved suppliers before publication |
-| `POST /api/v1/rfq-invitations/{id}/acknowledge` | `sourcing.submissions.manage` | Acknowledge an open invitation using the expected RFQ version |
-| `POST /api/v1/rfq-invitations/{id}/no-bid` | `sourcing.submissions.manage` | Decline before the deadline and retain the supplied reason |
 | `POST /api/v1/rfqs/{id}/publish` | `sourcing.publish` | Create immutable publication 1 and move the requisition to sourcing |
 | `POST /api/v1/rfqs/{id}/amend` | `sourcing.publish` | Create a new immutable publication with a reason and future deadline |
 | `POST /api/v1/rfqs/{id}/close` | `sourcing.publish` | Close after the server-side deadline |
 | `POST /api/v1/rfqs/{id}/cancel` | `sourcing.publish` | Cancel an open/draft RFQ with a reason |
-| `POST /api/v1/rfq-invitations/{id}/submissions` | `sourcing.submissions.manage` | Record an immutable, deadline-checked quote and its document-version attachments only when its explicit `rfq_revision_id` is current |
-| `POST /api/v1/quote-submissions/{id}/withdraw` | `sourcing.submissions.manage` | Withdraw only the latest quote before the deadline using the expected RFQ version |
+| `GET /api/v1/supplier/invitations/{organization_id}/{invitation_id}` | Verified invited supplier contact | Read only this supplier's RFQ, quotes and applicable clarifications |
+| `POST /api/v1/supplier/invitations/{organization_id}/{invitation_id}/acknowledge` | Verified invited supplier contact | Acknowledge an open invitation |
+| `POST /api/v1/supplier/invitations/{organization_id}/{invitation_id}/no-bid` | Verified invited supplier contact | Decline before the deadline |
+| `POST /api/v1/supplier/invitations/{organization_id}/{invitation_id}/submissions` | Verified invited supplier contact | Submit or supersede an immutable quote for the current revision |
+| `POST /api/v1/supplier/invitations/{organization_id}/{invitation_id}/submissions/{submission_id}/withdraw` | Verified invited supplier contact | Withdraw only this invitation's latest quote before the deadline |
+| `POST /api/v1/supplier/invitations/{organization_id}/{invitation_id}/upload-intents` | Verified invited supplier contact | Create a scoped, signed quote-attachment upload |
+| `POST /api/v1/supplier/invitations/{organization_id}/{invitation_id}/documents/{document_id}/versions/{version_id}/complete-upload` | Verified invited supplier contact | Complete only this supplier's scoped upload |
+| `GET /api/v1/supplier/invitations/{organization_id}/{invitation_id}/documents/{version_id}/download` | Verified invited supplier contact | Download only this contact's scanned invitation attachment |
+| `GET /api/v1/supplier/orders/{organization_id}/{purchase_order_id}` | Verified order-supplier contact | Read an issued supplier purchase order without buyer-only dossier fields |
+| `POST /api/v1/supplier/orders/{organization_id}/{purchase_order_id}/acknowledge` | Verified order-supplier contact | Accept, reject, or propose changes to the issued order |
+| `POST /api/v1/rfq-invitations/{invitation_id}/send-email` | `sourcing.invite` | Requeue email for a published invitation; delivery state is visible in the buyer RFQ view |
+| `GET /api/v1/documents/versions/{version_id}/extractions` | `documents.read` | List extraction versions for the source document |
+| `POST /api/v1/documents/versions/{version_id}/manual-extractions` | `documents.review` | Stage unverified fields with exact parsed-page quotations for human review |
 | `POST /api/v1/rfqs/{id}/clarifications` | `sourcing.clarifications.write` | Create a shared or invitation-private question before the deadline |
 | `POST /api/v1/rfqs/{id}/clarifications/{clarification_id}/answer` | `sourcing.clarifications.write` | Answer an open clarification and preserve its visibility |
 

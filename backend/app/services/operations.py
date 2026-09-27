@@ -1551,6 +1551,7 @@ async def _match_read(context: RequestContext, match: InvoiceMatch) -> InvoiceMa
             .order_by(MatchException.created_at, MatchException.id)
         )
     )
+
     return InvoiceMatchRead(
         id=match.id,
         invoice_id=match.invoice_id,
@@ -1579,6 +1580,38 @@ async def _match_read(context: RequestContext, match: InvoiceMatch) -> InvoiceMa
         ],
         created_at=match.created_at,
     )
+
+
+async def list_invoice_matches(
+    context: RequestContext, invoice_id: uuid.UUID
+) -> list[InvoiceMatchRead]:
+    matches = list(
+        await context.session.scalars(
+            select(InvoiceMatch)
+            .where(
+                InvoiceMatch.organization_id == context.organization_id,
+                InvoiceMatch.invoice_id == invoice_id,
+            )
+            .order_by(InvoiceMatch.attempt.desc())
+        )
+    )
+    return [await _match_read(context, item) for item in matches]
+
+
+async def list_purchase_order_receipts(
+    context: RequestContext, purchase_order_id: uuid.UUID
+) -> list[ReceiptRead]:
+    receipts = list(
+        await context.session.scalars(
+            select(DeliveryReceipt)
+            .where(
+                DeliveryReceipt.organization_id == context.organization_id,
+                DeliveryReceipt.purchase_order_id == purchase_order_id,
+            )
+            .order_by(DeliveryReceipt.created_at.desc())
+        )
+    )
+    return [await _receipt_read(context, item) for item in receipts]
 
 
 async def resolve_match_exception(

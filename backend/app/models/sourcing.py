@@ -237,6 +237,18 @@ class RfqInvitation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     invited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     response_reason: Mapped[str | None] = mapped_column(Text)
+    email_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="not_applicable", server_default="not_applicable"
+    )
+    email_publication_number: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    email_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    email_provider_id: Mapped[str | None] = mapped_column(String(255))
+    email_error_code: Mapped[str | None] = mapped_column(String(100))
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class QuoteSubmission(UUIDPrimaryKeyMixin, Base):

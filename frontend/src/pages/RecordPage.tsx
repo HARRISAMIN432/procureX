@@ -5,6 +5,7 @@ import { useSession } from "../auth/AuthContext";
 import { ErrorNotice, Loading, PageHeader, Status } from "../components/ui";
 import { api } from "../lib/api";
 import { humanize } from "../lib/format";
+import WorkflowActions from "./WorkflowActions";
 
 const paths: Record<string, string> = {
   requisition: "/api/v1/requisitions/", rfq: "/api/v1/rfqs/",
@@ -25,5 +26,5 @@ export default function RecordPage() {
   const record = query.data!;
   const title = String(record.title || record.po_number || record.invoice_number || `${humanize(type)} record`);
   const status = String(record.status || "recorded");
-  return <><Link to=".." className="back-link"><ArrowLeft size={15}/>Back</Link><PageHeader eyebrow={humanize(type)} title={title} action={<Status value={status}/>}/><div className="detail-grid"><section className="panel span-2"><header className="panel-header"><h2>Record detail</h2><span className="mono-label">{id}</span></header><dl className="detail-list">{Object.entries(record).filter(([key, value]) => !Array.isArray(value) && typeof value !== "object" && !["id", "organization_id", "title", "status"].includes(key)).slice(0, 18).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{String(value ?? "—")}</dd></div>)}</dl></section><section className="panel"><header className="panel-header"><h2>Evidence</h2></header><p className="panel-copy">This record is rendered directly from the tenant-authorized API response. Related immutable versions, decisions and evidence remain authoritative in the backend.</p></section></div></>;
+  return <><Link to=".." className="back-link"><ArrowLeft size={15}/>Back</Link><PageHeader eyebrow={humanize(type)} title={title} action={<Status value={status}/>}/><div className="detail-grid"><section className="panel span-2"><header className="panel-header"><h2>Record detail</h2><span className="mono-label">{id}</span></header><dl className="detail-list">{Object.entries(record).filter(([key, value]) => !Array.isArray(value) && typeof value !== "object" && !["id", "organization_id", "title", "status"].includes(key)).slice(0, 18).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{String(value ?? "—")}</dd></div>)}</dl></section><section className="panel"><header className="panel-header"><h2>Evidence</h2></header><p className="panel-copy">Related versions, decisions and evidence are controlled by the API.</p></section></div><WorkflowActions type={type} id={id} record={record}/></>;
 }

@@ -100,7 +100,8 @@ bounce/complaint suppression before using the system with paying customers.
 The repository root contains a Render Blueprint for a no-cost demonstration deployment. Read
 [`../docs/DEPLOY_RENDER.md`](../docs/DEPLOY_RENDER.md) before using it: Render's free database,
 in-memory task mode, cold starts, and lack of a free worker make it unsuitable for customer data or
-a commercial production SLA.
+a commercial production SLA. Its container is built from the repository root with
+`docker build -f backend/Dockerfile .` and serves the bundled React app on the API origin.
 
 Implemented organization endpoints are documented in
 [`../docs/API.md`](../docs/API.md#implemented-identity-endpoints).

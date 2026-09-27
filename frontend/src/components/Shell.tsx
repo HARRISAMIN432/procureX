@@ -10,6 +10,7 @@ import type { MembershipContext, Organization } from "../types";
 const nav = [
     ["Overview", "/", CircleGauge, "organization.read"], ["Requisitions", "/requisitions", ClipboardList, "requisitions.read"], ["Sourcing", "/sourcing", FileSearch, "sourcing.read"],
     ["Suppliers", "/suppliers", Store, "suppliers.read"], ["Documents", "/documents", Archive, "documents.read"], ["Evaluations", "/evaluations", BookOpenCheck, "evaluations.read"],
+    ["Approvals", "/approvals", ShieldCheck, "approvals.read"],
     ["Awards", "/awards", ShieldCheck, "awards.read"], ["Orders", "/operations", PackageCheck, "orders.read"], ["Budgets", "/budgets", Banknote, "budgets.read"],
     ["Team & access", "/admin", Users, "organization.members.read"], ["Settings", "/settings", Settings, "organization.settings.read"], ["Plan & support", "/service", Headphones, "commercial.read"],
 ] as const;

@@ -60,6 +60,12 @@ class SecurityHeadersMiddleware:
                         (b"x-frame-options", b"DENY"),
                         (b"referrer-policy", b"no-referrer"),
                         (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+                        (
+                            b"content-security-policy",
+                            b"default-src 'self'; script-src 'self'; style-src 'self'; "
+                            b"img-src 'self' data:; connect-src 'self' https:; "
+                            b"frame-ancestors 'none'; base-uri 'self'; form-action 'self' https:",
+                        ),
                         (b"cache-control", b"no-store"),
                         (b"server-timing", f"app;dur={duration_ms:.1f}".encode("ascii")),
                     ]

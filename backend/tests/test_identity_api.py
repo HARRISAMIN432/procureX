@@ -51,8 +51,12 @@ def test_identity_routes_are_in_openapi() -> None:
     assert "/api/v1/rfqs" in schema["paths"]
     assert "/api/v1/rfqs/{rfq_id}/publish" in schema["paths"]
     assert "/api/v1/rfqs/{rfq_id}/amend" in schema["paths"]
-    assert "/api/v1/rfq-invitations/{invitation_id}/submissions" in schema["paths"]
-    assert "/api/v1/quote-submissions/{submission_id}/withdraw" in schema["paths"]
+    assert "/api/v1/rfq-invitations/{invitation_id}/submissions" not in schema["paths"]
+    assert "/api/v1/quote-submissions/{submission_id}/withdraw" not in schema["paths"]
+    assert (
+        "/api/v1/supplier/invitations/{organization_id}/{invitation_id}/submissions"
+        in schema["paths"]
+    )
     assert "/api/v1/rfqs/{rfq_id}/clarifications/{clarification_id}/answer" in schema["paths"]
     assert "/api/v1/documents/upload-intents" in schema["paths"]
     assert (

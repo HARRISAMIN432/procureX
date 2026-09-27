@@ -29,7 +29,7 @@ from app.models.sourcing import (
     RfqStatus,
     SubmissionStatus,
 )
-from app.models.suppliers import Supplier, SupplierStatus
+from app.models.suppliers import Supplier, SupplierContact, SupplierStatus
 from app.schemas.sourcing import (
     ClarificationAnswer,
     ClarificationCreate,
@@ -252,6 +252,16 @@ async def invite_suppliers(
         raise SourcingNotFoundError("One or more suppliers were not found")
     if any(supplier.status is not SupplierStatus.APPROVED for supplier in suppliers):
         raise SourcingValidationError("Only approved suppliers can be invited")
+    contact_suppliers = set(
+        await context.session.scalars(
+            select(SupplierContact.supplier_id).where(
+                SupplierContact.organization_id == context.organization_id,
+                SupplierContact.supplier_id.in_(payload.supplier_ids),
+            )
+        )
+    )
+    if contact_suppliers != set(payload.supplier_ids):
+        raise SourcingValidationError("Each invited supplier needs a registered email contact")
     existing = set(
         await context.session.scalars(
             select(RfqInvitation.supplier_id).where(
@@ -450,6 +460,10 @@ async def publish_rfq(
     for invitation in invitations:
         invitation.rfq_revision_id = revision.id
         invitation.invited_at = now
+        invitation.email_status = "queued"
+        invitation.email_publication_number = rfq.publication_number
+        invitation.email_attempts = 0
+        invitation.email_error_code = None
     requisition = await context.session.scalar(
         select(Requisition)
         .where(
@@ -493,6 +507,10 @@ async def amend_rfq(context: RequestContext, rfq_id: uuid.UUID, payload: RfqAmen
     )
     for invitation in invitations:
         invitation.rfq_revision_id = revision.id
+        invitation.email_status = "queued"
+        invitation.email_publication_number = rfq.publication_number
+        invitation.email_attempts = 0
+        invitation.email_error_code = None
     _record_change(
         context,
         rfq,
@@ -859,6 +877,39 @@ async def close_rfq(context: RequestContext, rfq_id: uuid.UUID, payload: RfqTran
     _record_change(context, rfq, "rfq.closed", {})
     await context.session.flush()
     return await read_rfq(context, rfq.id)
+
+
+async def queue_supplier_invitation_email(
+    context: RequestContext, invitation_id: uuid.UUID
+) -> InvitationRead:
+    invitation = await context.session.scalar(
+        select(RfqInvitation)
+        .where(
+            RfqInvitation.organization_id == context.organization_id,
+            RfqInvitation.id == invitation_id,
+        )
+        .with_for_update()
+    )
+    if invitation is None:
+        raise SourcingNotFoundError("Invitation not found")
+    rfq = await context.session.scalar(
+        select(Rfq).where(
+            Rfq.organization_id == context.organization_id,
+            Rfq.id == invitation.rfq_id,
+        )
+    )
+    if rfq is None or rfq.status is not RfqStatus.PUBLISHED:
+        raise SourcingConflictError("Only a published RFQ can email an invitation")
+    if invitation.status is InvitationStatus.REVOKED:
+        raise SourcingConflictError("Revoked invitation cannot be emailed")
+    if invitation.email_status in {"queued", "sending", "retry_scheduled"}:
+        raise SourcingConflictError("Invitation email is already queued")
+    invitation.email_status = "queued"
+    invitation.email_publication_number = rfq.publication_number
+    invitation.email_attempts = 0
+    invitation.email_error_code = None
+    await context.session.flush()
+    return InvitationRead.model_validate(invitation)
 
 
 async def read_submission(context: RequestContext, submission_id: uuid.UUID) -> SubmissionRead:

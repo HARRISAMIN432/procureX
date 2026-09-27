@@ -3,8 +3,10 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 
 from app.auth.context import RequestContext, require_permission
+from app.models.operations import Invoice, PurchaseOrder
 from app.schemas.operations import (
     AccountingExportCreate,
     AccountingExportRead,
@@ -16,7 +18,6 @@ from app.schemas.operations import (
     InvoiceMatchCreate,
     InvoiceMatchRead,
     InvoiceRead,
-    PurchaseOrderAcknowledge,
     PurchaseOrderAmend,
     PurchaseOrderCreate,
     PurchaseOrderRead,
@@ -30,7 +31,6 @@ from app.services.operations import (
     OperationsConflictError,
     OperationsNotFoundError,
     OperationsValidationError,
-    acknowledge_purchase_order,
     amend_purchase_order,
     approve_invoice_for_export,
     authorize_purchase_order_amendment,
@@ -40,6 +40,8 @@ from app.services.operations import (
     create_return,
     export_invoice,
     issue_purchase_order,
+    list_invoice_matches,
+    list_purchase_order_receipts,
     match_invoice,
     read_invoice,
     read_purchase_order,
@@ -90,6 +92,21 @@ async def get_purchase_order(
     return await execute(lambda: read_purchase_order(context, purchase_order_id))
 
 
+@router.get("/purchase-orders", response_model=list[PurchaseOrderRead])
+async def list_purchase_orders(
+    context: Annotated[RequestContext, Depends(require_permission("orders.read"))],
+) -> list[PurchaseOrderRead]:
+    ids = list(
+        await context.session.scalars(
+            select(PurchaseOrder.id)
+            .where(PurchaseOrder.organization_id == context.organization_id)
+            .order_by(PurchaseOrder.created_at.desc())
+            .limit(100)
+        )
+    )
+    return [await read_purchase_order(context, item) for item in ids]
+
+
 @router.post("/purchase-orders/{purchase_order_id}/amend", response_model=PurchaseOrderRead)
 async def amend(
     purchase_order_id: UUID,
@@ -122,15 +139,6 @@ async def issue(
     return await execute(lambda: issue_purchase_order(context, purchase_order_id, payload))
 
 
-@router.post("/purchase-orders/{purchase_order_id}/acknowledge", response_model=PurchaseOrderRead)
-async def acknowledge(
-    purchase_order_id: UUID,
-    payload: PurchaseOrderAcknowledge,
-    context: Annotated[RequestContext, Depends(require_permission("orders.acknowledge"))],
-) -> PurchaseOrderRead:
-    return await execute(lambda: acknowledge_purchase_order(context, purchase_order_id, payload))
-
-
 @router.post(
     "/purchase-orders/{purchase_order_id}/receipts",
     response_model=ReceiptRead,
@@ -142,6 +150,14 @@ async def receive(
     context: Annotated[RequestContext, Depends(require_permission("orders.receive"))],
 ) -> ReceiptRead:
     return await execute(lambda: create_receipt(context, purchase_order_id, payload))
+
+
+@router.get("/purchase-orders/{purchase_order_id}/receipts", response_model=list[ReceiptRead])
+async def list_receipts(
+    purchase_order_id: UUID,
+    context: Annotated[RequestContext, Depends(require_permission("orders.read"))],
+) -> list[ReceiptRead]:
+    return await list_purchase_order_receipts(context, purchase_order_id)
 
 
 @router.post(
@@ -178,6 +194,21 @@ async def get_invoice(
     return await execute(lambda: read_invoice(context, invoice_id))
 
 
+@router.get("/invoices", response_model=list[InvoiceRead])
+async def list_invoices(
+    context: Annotated[RequestContext, Depends(require_permission("invoices.read"))],
+) -> list[InvoiceRead]:
+    ids = list(
+        await context.session.scalars(
+            select(Invoice.id)
+            .where(Invoice.organization_id == context.organization_id)
+            .order_by(Invoice.created_at.desc())
+            .limit(100)
+        )
+    )
+    return [await read_invoice(context, item) for item in ids]
+
+
 @router.post("/invoices/{invoice_id}/match", response_model=InvoiceMatchRead)
 async def match(
     invoice_id: UUID,
@@ -185,6 +216,14 @@ async def match(
     context: Annotated[RequestContext, Depends(require_permission("invoices.match"))],
 ) -> InvoiceMatchRead:
     return await execute(lambda: match_invoice(context, invoice_id, payload))
+
+
+@router.get("/invoices/{invoice_id}/matches", response_model=list[InvoiceMatchRead])
+async def list_matches(
+    invoice_id: UUID,
+    context: Annotated[RequestContext, Depends(require_permission("invoices.read"))],
+) -> list[InvoiceMatchRead]:
+    return await list_invoice_matches(context, invoice_id)
 
 
 @router.post("/match-exceptions/{exception_id}/resolve", response_model=InvoiceMatchRead)

@@ -92,6 +92,33 @@ class ExtractionResultCreate(BaseModel):
         return fields
 
 
+class ManualFieldCreate(BaseModel):
+    field_key: str = Field(min_length=1, max_length=160, pattern=r"^[a-z][a-z0-9_.]*$")
+    label: str = Field(min_length=1, max_length=250)
+    value: str = Field(min_length=1, max_length=5000)
+    page_number: int = Field(gt=0)
+    quoted_text: str = Field(min_length=1, max_length=5000)
+    is_critical: bool = False
+
+    @field_validator("label", "value", "quoted_text")
+    @classmethod
+    def require_nonblank_text(cls, value: str) -> str:
+        return normalized_text(value)
+
+
+class ManualExtractionCreate(BaseModel):
+    parse_id: UUID
+    schema_name: str = Field(default="manual_review", pattern=r"^[a-z][a-z0-9_.]*$")
+    fields: list[ManualFieldCreate] = Field(min_length=1, max_length=100)
+
+    @field_validator("fields")
+    @classmethod
+    def unique_manual_keys(cls, fields: list[ManualFieldCreate]) -> list[ManualFieldCreate]:
+        if len({field.field_key for field in fields}) != len(fields):
+            raise ValueError("Manual field keys must be unique")
+        return fields
+
+
 class FieldReviewCreate(BaseModel):
     expected_revision: int = Field(gt=0)
     action: ReviewAction

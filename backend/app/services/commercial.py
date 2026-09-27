@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 
 from app.auth.context import RequestContext
 from app.db.base import Base
+from app.models.ai import AnalysisRun
 from app.models.commercial import (
     AfterSalesCase,
     DataExportRequest,
@@ -265,3 +266,20 @@ async def usage(context: RequestContext) -> tuple[int, int, int]:
         or 0
     )
     return int(members), int(stored), int(cases)
+
+
+async def monthly_ai_usage(context: RequestContext) -> int:
+    now = datetime.now(UTC)
+    period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    period_end = period_start.replace(year=now.year + 1, month=1) if now.month == 12 else (
+        period_start.replace(month=now.month + 1)
+    )
+    used = await context.session.scalar(
+        select(func.count(AnalysisRun.id)).where(
+            AnalysisRun.organization_id == context.organization_id,
+            AnalysisRun.graph_name == "evaluation_graph",
+            AnalysisRun.created_at >= period_start,
+            AnalysisRun.created_at < period_end,
+        )
+    )
+    return int(used or 0)

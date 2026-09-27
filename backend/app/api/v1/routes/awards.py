@@ -3,9 +3,10 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 
 from app.auth.context import RequestContext, require_permission
-from app.models.awards import AwardDecisionValue
+from app.models.awards import Award, AwardDecisionValue
 from app.schemas.awards import (
     AllocationScenarioCreate,
     AllocationScenarioList,
@@ -88,6 +89,21 @@ async def get_award(
     award_id: UUID, context: Annotated[RequestContext, Depends(require_permission("awards.read"))]
 ) -> AwardRead:
     return await execute(lambda: read_award(context, award_id))
+
+
+@router.get("/awards", response_model=list[AwardRead])
+async def list_awards(
+    context: Annotated[RequestContext, Depends(require_permission("awards.read"))],
+) -> list[AwardRead]:
+    ids = list(
+        await context.session.scalars(
+            select(Award.id)
+            .where(Award.organization_id == context.organization_id)
+            .order_by(Award.created_at.desc())
+            .limit(100)
+        )
+    )
+    return [await read_award(context, item) for item in ids]
 
 
 @router.post("/awards/{award_id}/submit", response_model=AwardRead)

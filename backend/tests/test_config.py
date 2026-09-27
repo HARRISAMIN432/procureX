@@ -131,13 +131,18 @@ def test_render_runtime_hosts_extend_the_exact_edge_allowlists() -> None:
             allowed_hosts=[],
             cors_allowed_origins=[],
             render_external_hostname="procurex-api-ab12.onrender.com",
+            render_external_url="https://procurex-api-ab12.onrender.com",
             render_frontend_url="https://procurex-web-cd34.onrender.com",
             web_app_url="https://procurex-web-cd34.onrender.com",
+            oidc_redirect_uri=None,
         )
     )
 
     assert settings.effective_allowed_hosts == ["procurex-api-ab12.onrender.com"]
     assert settings.effective_cors_allowed_origins == ["https://procurex-web-cd34.onrender.com"]
+    assert settings.effective_oidc_redirect_uri == (
+        "https://procurex-api-ab12.onrender.com/api/v1/auth/callback"
+    )
 
 
 @pytest.mark.parametrize(

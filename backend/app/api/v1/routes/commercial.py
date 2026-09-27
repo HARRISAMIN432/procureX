@@ -26,6 +26,7 @@ from app.services.commercial import (
     create_after_sales_case,
     create_support_case,
     export_organization,
+    monthly_ai_usage,
     record_event,
     schedule_closure,
     subscription_for,
@@ -41,11 +42,13 @@ async def overview(
 ) -> CommercialOverview:
     subscription = await subscription_for(context)
     members, stored, cases = await usage(context)
+    ai_runs = await monthly_ai_usage(context)
     return CommercialOverview(
         subscription=SubscriptionRead.model_validate(subscription),
         active_members=members,
         stored_bytes=stored,
         open_support_cases=cases,
+        ai_runs_this_month=ai_runs,
         seat_usage_percent=round(members / subscription.seat_limit * 100, 1),
         storage_usage_percent=round(stored / subscription.storage_limit_bytes * 100, 1),
     )

@@ -4,6 +4,10 @@ ProcureX can be demonstrated entirely on free services. The default `community` 
 provisioned for every organization with five seats, 512 MiB of document metadata/storage allowance,
 25 monthly AI runs, organization export, and accounting export. Billing mode is `manual`, allowing
 the operator to invoice customers without introducing a paid billing provider or storing card data.
+New evaluation-analysis runs count against the organization's calendar-month UTC limit; the
+remaining capacity is visible in **Plan & support**. All organizations use the operator's one
+backend Gemini key, so the provider's account-wide free quota can still be exhausted across
+organizations.
 
 ## Plans and entitlements
 

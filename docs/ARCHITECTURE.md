@@ -28,7 +28,7 @@ Cross-cutting: audit, policy, secrets, OpenTelemetry, backups
 
 | Layer | Choice |
 |---|---|
-| Web | Next.js and TypeScript |
+| Web | React, TypeScript, and Vite |
 | API | Python, FastAPI, Pydantic |
 | Persistence | PostgreSQL, SQLAlchemy 2, Alembic |
 | Files | Cloudinary authenticated assets behind a local adapter |

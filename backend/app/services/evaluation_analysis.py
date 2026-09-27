@@ -4,13 +4,29 @@ from sqlalchemy import select
 
 from app.auth.context import RequestContext
 from app.models.ai import AnalysisRun, AnalysisRunStatus
+from app.models.commercial import OrganizationSubscription
 from app.models.evaluations import Evaluation
 from app.models.platform import ActorType, AuditEvent, Job, JobStatus, OutboxEvent
 from app.schemas.evaluations import AnalysisResume, AnalysisRunRead
+from app.services.commercial import monthly_ai_usage
 from app.services.evaluations import EvaluationConflictError, EvaluationNotFoundError
 
 GRAPH_NAME = "evaluation_graph"
 GRAPH_VERSION = "2.0.0"
+
+
+async def _check_monthly_ai_limit(context: RequestContext) -> None:
+    # Lock the subscription row so concurrent requests for different evaluations in the same
+    # organization cannot both pass the final available slot.
+    subscription = await context.session.scalar(
+        select(OrganizationSubscription)
+        .where(OrganizationSubscription.organization_id == context.organization_id)
+        .with_for_update()
+    )
+    if subscription is None:
+        raise EvaluationConflictError("AI entitlement is not configured for this workspace")
+    if await monthly_ai_usage(context) >= subscription.ai_run_limit_monthly:
+        raise EvaluationConflictError("Monthly AI analysis limit reached for this workspace")
 
 
 def _read(run: AnalysisRun) -> AnalysisRunRead:
@@ -76,6 +92,7 @@ async def create_analysis_run(
             )
         return _read(existing), pending_job_id
 
+    await _check_monthly_ai_limit(context)
     run_id = uuid.uuid4()
     thread_id = f"org:{context.organization_id}:evaluation:{evaluation.id}:run:{run_id}"
     run = AnalysisRun(

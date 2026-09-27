@@ -2,13 +2,15 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from sqlalchemy import text
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.responses import JSONResponse
+from starlette.responses import FileResponse, JSONResponse
+from starlette.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
 from app.core.config import Environment, Settings, get_settings
@@ -18,6 +20,7 @@ from app.core.rate_limit import RateLimitMiddleware
 
 logger = logging.getLogger(__name__)
 ReadinessProbe = Callable[[], Awaitable[None]]
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend_dist"
 
 
 @asynccontextmanager
@@ -114,6 +117,17 @@ def create_app(
                 },
             )
         return {"status": "ok", "checks": {"database": {"status": "ok"}}}
+
+    if FRONTEND_DIST.is_dir():
+        application.mount(
+            "/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="frontend-assets"
+        )
+
+        @application.get("/{full_path:path}", include_in_schema=False)
+        async def frontend_page(full_path: str) -> FileResponse:
+            if full_path.startswith(("api/", "health/", "assets/")) or "." in full_path:
+                raise HTTPException(status_code=404, detail="Not found")
+            return FileResponse(FRONTEND_DIST / "index.html")
 
     return application
 

@@ -34,7 +34,7 @@ load immutable evaluation snapshot → retrieve authorized evidence
 ```
 
 The production graph retrieves only tenant-owned, verified evidence from completed extractions of
-documents attached to the evaluated submissions. Gemini 3.1 Pro Preview produces a JSON-schema
+documents attached to the evaluated submissions. The configured Gemini model produces a JSON-schema
 validated comparison narrative without changing deterministic prices, eligibility, scores, or
 rankings. Every generated claim carries evidence-anchor IDs; the graph rejects unknown citations
 and supplier narratives that cite another submission's evidence. It persists analysis-run and model
@@ -61,6 +61,11 @@ unresolved, and rejects a resume when the immutable evaluation digest has change
 
 ## Provider and execution
 
+- The operator configures one `PROCUREX_GEMINI_API_KEY` secret on the backend deployment. Every
+  authorized organization and user shares that server-side key; users never enter a personal key,
+  and the frontend never receives it. New analysis runs are limited by the workspace's monthly AI
+  entitlement. Rotate the key in the backend secret store. Provider-wide rate limits and free-tier
+  data-use terms apply to traffic from all organizations combined.
 - Provider: Gemini through `langchain-google-genai`; the repository default is
   `gemini-3.1-flash-lite`. Provider generation uses a compatibility schema; the complete bounded
   Pydantic contract is always re-applied locally before output is accepted.

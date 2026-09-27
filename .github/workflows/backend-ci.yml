@@ -66,4 +66,5 @@ jobs:
           PROCUREX_TEST_DATABASE_URL: postgresql+asyncpg://procurex_app:procurex_app@localhost:5432/procurex
         run: uv run pytest -q
       - name: Build production container
-        run: docker build --file Dockerfile --tag procurex-backend:ci .
+        working-directory: .
+        run: docker build --file backend/Dockerfile --tag procurex-backend:ci .

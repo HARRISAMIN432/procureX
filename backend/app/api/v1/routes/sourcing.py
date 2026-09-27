@@ -2,16 +2,14 @@ from collections.abc import Awaitable, Callable
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 
 from app.auth.context import RequestContext, require_permission
 from app.schemas.sourcing import (
     ClarificationAnswer,
     ClarificationCreate,
     ClarificationRead,
-    InvitationAcknowledge,
     InvitationCreate,
-    InvitationNoBid,
     InvitationRead,
     RfqAmend,
     RfqCancel,
@@ -20,30 +18,25 @@ from app.schemas.sourcing import (
     RfqRead,
     RfqReplace,
     RfqTransition,
-    SubmissionCreate,
-    SubmissionRead,
-    SubmissionWithdraw,
 )
 from app.services.sourcing import (
     SourcingConflictError,
     SourcingNotFoundError,
     SourcingValidationError,
-    acknowledge_invitation,
     amend_rfq,
     answer_clarification,
     cancel_rfq,
     close_rfq,
     create_clarification,
     create_rfq,
-    decline_invitation,
     invite_suppliers,
     list_rfqs,
     publish_rfq,
+    queue_supplier_invitation_email,
     read_rfq,
     replace_rfq,
-    submit_quote,
-    withdraw_quote,
 )
+from app.workers.supplier_notifications import enqueue_supplier_invitation_email
 
 router = APIRouter(tags=["sourcing"])
 
@@ -111,31 +104,22 @@ async def invite(
     return await execute(lambda: invite_suppliers(context, rfq_id, payload))
 
 
-@router.post("/rfq-invitations/{invitation_id}/acknowledge", response_model=InvitationRead)
-async def acknowledge(
-    invitation_id: UUID,
-    payload: InvitationAcknowledge,
-    context: Annotated[RequestContext, Depends(require_permission("sourcing.submissions.manage"))],
-) -> InvitationRead:
-    return await execute(lambda: acknowledge_invitation(context, invitation_id, payload))
-
-
-@router.post("/rfq-invitations/{invitation_id}/no-bid", response_model=InvitationRead)
-async def no_bid(
-    invitation_id: UUID,
-    payload: InvitationNoBid,
-    context: Annotated[RequestContext, Depends(require_permission("sourcing.submissions.manage"))],
-) -> InvitationRead:
-    return await execute(lambda: decline_invitation(context, invitation_id, payload))
-
-
 @router.post("/rfqs/{rfq_id}/publish", response_model=RfqRead)
 async def publish(
     rfq_id: UUID,
     payload: RfqTransition,
     context: Annotated[RequestContext, Depends(require_permission("sourcing.publish"))],
+    background_tasks: BackgroundTasks,
 ) -> RfqRead:
-    return await execute(lambda: publish_rfq(context, rfq_id, payload))
+    rfq = await execute(lambda: publish_rfq(context, rfq_id, payload))
+    for invitation in rfq.invitations:
+        background_tasks.add_task(
+            enqueue_supplier_invitation_email,
+            context.organization_id,
+            invitation.id,
+            rfq.publication_number,
+        )
+    return rfq
 
 
 @router.post("/rfqs/{rfq_id}/amend", response_model=RfqRead)
@@ -143,8 +127,34 @@ async def amend(
     rfq_id: UUID,
     payload: RfqAmend,
     context: Annotated[RequestContext, Depends(require_permission("sourcing.publish"))],
+    background_tasks: BackgroundTasks,
 ) -> RfqRead:
-    return await execute(lambda: amend_rfq(context, rfq_id, payload))
+    rfq = await execute(lambda: amend_rfq(context, rfq_id, payload))
+    for invitation in rfq.invitations:
+        if invitation.status.value != "revoked":
+            background_tasks.add_task(
+                enqueue_supplier_invitation_email,
+                context.organization_id,
+                invitation.id,
+                rfq.publication_number,
+            )
+    return rfq
+
+
+@router.post("/rfq-invitations/{invitation_id}/send-email", response_model=InvitationRead)
+async def resend_supplier_invitation(
+    invitation_id: UUID,
+    context: Annotated[RequestContext, Depends(require_permission("sourcing.invite"))],
+    background_tasks: BackgroundTasks,
+) -> InvitationRead:
+    invitation = await execute(lambda: queue_supplier_invitation_email(context, invitation_id))
+    background_tasks.add_task(
+        enqueue_supplier_invitation_email,
+        context.organization_id,
+        invitation.id,
+        invitation.email_publication_number,
+    )
+    return invitation
 
 
 @router.post("/rfqs/{rfq_id}/close", response_model=RfqRead)
@@ -163,28 +173,6 @@ async def cancel(
     context: Annotated[RequestContext, Depends(require_permission("sourcing.publish"))],
 ) -> RfqRead:
     return await execute(lambda: cancel_rfq(context, rfq_id, payload))
-
-
-@router.post(
-    "/rfq-invitations/{invitation_id}/submissions",
-    response_model=SubmissionRead,
-    status_code=status.HTTP_201_CREATED,
-)
-async def submit(
-    invitation_id: UUID,
-    payload: SubmissionCreate,
-    context: Annotated[RequestContext, Depends(require_permission("sourcing.submissions.manage"))],
-) -> SubmissionRead:
-    return await execute(lambda: submit_quote(context, invitation_id, payload))
-
-
-@router.post("/quote-submissions/{submission_id}/withdraw", response_model=SubmissionRead)
-async def withdraw(
-    submission_id: UUID,
-    payload: SubmissionWithdraw,
-    context: Annotated[RequestContext, Depends(require_permission("sourcing.submissions.manage"))],
-) -> SubmissionRead:
-    return await execute(lambda: withdraw_quote(context, submission_id, payload))
 
 
 @router.post(

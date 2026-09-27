@@ -115,13 +115,29 @@ are separate permissions. Banking and payment-change fields are not collected in
 slice; adding them requires independent verification, dual review, masking, and stricter audit
 controls.
 
+Published RFQ invitations are emailed to the registered primary supplier contact through the
+operator's Resend account. Each publication has a stable idempotency key and tracked delivery
+state; the email link itself does not authorize access. Verified OIDC email, invitation ownership,
+supplier status, tenant RLS, and CSRF are checked again at the supplier API. A failed delivery can
+be retried from the buyer RFQ screen. Hosted delivery and bounce handling still require a drill.
+
 RFQ publications and quote payloads are immutable digest-bearing snapshots. Tenant-qualified
 foreign keys prevent cross-organization and cross-RFQ references, and the server clock controls
 submission timeliness. A quote must name the invitation's current RFQ revision, preventing an
-amendment from silently rebinding an in-flight submission. The current quote endpoint requires an
-internal buyer-side intake permission; it must not be exposed as supplier self-service until
-supplier principals, invitation credentials, object authorization, rate limits, and
-competitor-data response filtering are added.
+amendment from silently rebinding an in-flight submission. The supplier portal requires a valid
+server-side OIDC session with a verified email matching a contact on the exact invited supplier.
+The UUID link is a locator, not a credential. Supplier reads include only that invitation's
+submissions, shared clarifications, and private clarifications for that invitation; the buyer RFQ
+serializer is never returned. Supplier uploads are tied to the invitation, creator, and clean-scan
+state before quote attachment. Buyer-operated quote and purchase-order acknowledgement endpoints
+have been removed. Order acknowledgement also checks a verified contact on the order's supplier.
+Hosted adversarial cross-supplier tests, invitation delivery, rate-limit tuning, and account
+recovery remain release gates.
+
+The buyer evidence screen uses parsed page text as untrusted content and renders it escaped. A
+reviewer with `documents.review` may stage a manual extraction only when each quoted excerpt
+appears on the selected parsed page. Fields are created as proposals, not verified facts;
+`review_field` and `finalize_extraction` remain separate optimistic-versioned decisions.
 
 Evaluation creation and reading use separate `evaluations.run` and `evaluations.read` permissions.
 Runs are restricted to closed RFQs, tenant-owned current submissions, a complete controlled

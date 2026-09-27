@@ -106,6 +106,11 @@ class ApprovalPolicyRead(BaseModel):
     created_at: datetime
 
 
+class ApprovalPolicyList(BaseModel):
+    items: list[ApprovalPolicyRead]
+    total: int
+
+
 class ApprovalRequestCreate(BaseModel):
     expected_requisition_version: int = Field(gt=0)
     budget_id: UUID
@@ -144,3 +149,8 @@ class ApprovalRequestRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     decisions: list[ApprovalDecisionRead]
+
+
+class ApprovalRequestList(BaseModel):
+    items: list[ApprovalRequestRead]
+    total: int

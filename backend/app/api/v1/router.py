@@ -12,6 +12,8 @@ from app.api.v1.routes import (
     organizations,
     requisitions,
     sourcing,
+    supplier_orders,
+    supplier_portal,
     suppliers,
 )
 
@@ -24,6 +26,8 @@ api_router.include_router(approvals.router)
 api_router.include_router(awards.router)
 api_router.include_router(suppliers.router)
 api_router.include_router(sourcing.router)
+api_router.include_router(supplier_portal.router)
+api_router.include_router(supplier_orders.router)
 api_router.include_router(documents.router)
 api_router.include_router(extractions.router)
 api_router.include_router(evaluations.router)

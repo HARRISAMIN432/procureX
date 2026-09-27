@@ -1,3 +1,12 @@
+FROM node:22-bookworm-slim AS frontend-builder
+
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+ENV VITE_AUTH_MODE=oidc
+RUN npm run build
+
 FROM python:3.12.13-slim-bookworm AS builder
 
 ENV UV_COMPILE_BYTECODE=1 \
@@ -5,9 +14,9 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /build
 RUN pip install --no-cache-dir uv==0.12.3
-COPY pyproject.toml uv.lock ./
+COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
-COPY app ./app
+COPY backend/app ./app
 RUN uv sync --frozen --no-dev
 
 FROM python:3.12.13-slim-bookworm AS runtime
@@ -31,8 +40,9 @@ RUN apt-get update \
 WORKDIR /app
 COPY --from=builder --chown=procurex:procurex /build/.venv ./.venv
 COPY --from=builder --chown=procurex:procurex /build/app ./app
-COPY --chown=procurex:procurex alembic ./alembic
-COPY --chown=procurex:procurex alembic.ini ./alembic.ini
+COPY --from=frontend-builder --chown=procurex:procurex /frontend/dist ./frontend_dist
+COPY --chown=procurex:procurex backend/alembic ./alembic
+COPY --chown=procurex:procurex backend/alembic.ini ./alembic.ini
 USER procurex
 EXPOSE 8000
 

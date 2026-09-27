@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     )
     cors_allowed_origins: list[str] = Field(default_factory=list)
     render_external_hostname: str | None = None
+    render_external_url: str | None = None
     render_frontend_url: str | None = None
 
     auth_mode: AuthMode = AuthMode.DEV_HEADERS
@@ -150,6 +151,15 @@ class Settings(BaseSettings):
             origins.append(self.render_frontend_url)
         return origins
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def effective_oidc_redirect_uri(self) -> str | None:
+        if self.oidc_redirect_uri:
+            return self.oidc_redirect_uri
+        if self.render_external_url:
+            return f"{self.render_external_url.rstrip('/')}{self.api_v1_prefix}/auth/callback"
+        return None
+
     @model_validator(mode="after")
     def validate_deployed_secrets(self) -> "Settings":
         if self.environment in {Environment.STAGING, Environment.PRODUCTION}:
@@ -176,7 +186,7 @@ class Settings(BaseSettings):
                 (
                     self.oidc_authorization_url,
                     self.oidc_token_url,
-                    self.oidc_redirect_uri,
+                    self.effective_oidc_redirect_uri,
                     self.oidc_client_secret
                     and self.oidc_client_secret.get_secret_value().strip(),
                 )
@@ -193,7 +203,7 @@ class Settings(BaseSettings):
             for label, value in (
                 ("authorization URL", self.oidc_authorization_url),
                 ("token URL", self.oidc_token_url),
-                ("redirect URI", self.oidc_redirect_uri),
+                ("redirect URI", self.effective_oidc_redirect_uri),
             ):
                 parsed = urlsplit(value or "")
                 if parsed.scheme != "https" or parsed.hostname is None:
@@ -234,6 +244,12 @@ class Settings(BaseSettings):
                 or any(character.isspace() for character in self.render_external_hostname)
             ):
                 raise ValueError("Render external hostname must be an onrender.com hostname")
+            if self.render_external_url is not None and (
+                urlsplit(self.render_external_url).scheme != "https"
+                or urlsplit(self.render_external_url).hostname != self.render_external_hostname
+                or urlsplit(self.render_external_url).path not in {"", "/"}
+            ):
+                raise ValueError("Render external URL must match the Render external hostname")
             unsafe_hosts = [
                 host
                 for host in self.effective_allowed_hosts

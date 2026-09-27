@@ -1,52 +1,11 @@
 # yaml-language-server: $schema=https://render.com/schema/render.yaml.json
 services:
   - type: web
-    name: procurex-web
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
-    autoDeployTrigger: checksPass
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: Referrer-Policy
-        value: no-referrer
-      - path: /*
-        name: Permissions-Policy
-        value: camera=(), microphone=(), geolocation=()
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https:"
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          name: procurex-api
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
-      - key: VITE_AUTH_MODE
-        value: oidc
-      - key: VITE_OIDC_AUTHORITY
-        sync: false
-      - key: VITE_OIDC_CLIENT_ID
-        sync: false
-      - key: VITE_OIDC_SCOPE
-        value: openid profile email
-  - type: web
     name: procurex-api
     runtime: docker
     plan: free
     region: oregon
-    dockerContext: ./backend
+    dockerContext: .
     dockerfilePath: ./backend/Dockerfile
     dockerCommand: /bin/sh -c 'alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}'
     healthCheckPath: /health/ready
@@ -70,9 +29,14 @@ services:
           name: procurex-api
           type: web
           envVarKey: RENDER_EXTERNAL_HOSTNAME
+      - key: PROCUREX_RENDER_EXTERNAL_URL
+        fromService:
+          name: procurex-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: PROCUREX_RENDER_FRONTEND_URL
         fromService:
-          name: procurex-web
+          name: procurex-api
           type: web
           envVarKey: RENDER_EXTERNAL_URL
       - key: PROCUREX_DATABASE_URL
@@ -91,6 +55,8 @@ services:
         value: cache+memory://
       - key: PROCUREX_CLOUDINARY_FOLDER_PREFIX
         value: procurex/production
+      - key: PROCUREX_DOCUMENT_MAX_UPLOAD_BYTES
+        value: "10000000"
       - key: PROCUREX_DOCUMENT_PARSER_MEMORY_BYTES
         value: "268435456"
       - key: PROCUREX_OIDC_ISSUER
@@ -98,6 +64,12 @@ services:
       - key: PROCUREX_OIDC_AUDIENCE
         sync: false
       - key: PROCUREX_OIDC_JWKS_URL
+        sync: false
+      - key: PROCUREX_OIDC_AUTHORIZATION_URL
+        sync: false
+      - key: PROCUREX_OIDC_TOKEN_URL
+        sync: false
+      - key: PROCUREX_OIDC_CLIENT_SECRET
         sync: false
       - key: PROCUREX_CLOUDINARY_CLOUD_NAME
         sync: false
@@ -117,7 +89,7 @@ services:
         sync: false
       - key: PROCUREX_WEB_APP_URL
         fromService:
-          name: procurex-web
+          name: procurex-api
           type: web
           envVarKey: RENDER_EXTERNAL_URL
 

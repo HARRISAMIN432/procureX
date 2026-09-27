@@ -1,5 +1,10 @@
 # Render deployment audit — 2026-09-22
 
+Historical evidence for the former two-service Blueprint. The 2026-09-27 review replaced it with
+a single-origin web/API demonstration profile; see `../DEPLOY_RENDER.md` and
+`../WORKFLOW_LAUNCH_AUDIT.md` for current status. The checks below were not rerun against a hosted
+deployment after that change.
+
 ## Result
 
 The repository's free Render demonstration profile is structurally deployable after the fixes in

@@ -1,6 +1,6 @@
 # ProcureX sell-readiness status
 
-Last reviewed: 2026-09-21
+Last reviewed: 2026-09-27
 
 ## Current verdict
 
@@ -82,6 +82,16 @@ The project will keep `render.yaml` free-tier compatible for demos. This satisfi
 to have a no-cost demonstration environment, but it does not close production availability, backup,
 recovery, or durability gates. Do not promise an SLA or store customer production records on that
 profile.
+
+The Render Blueprint now serves the web app and API from one origin, eliminating the split-site
+cookie failure for that demonstration profile. A separate Vercel frontend still requires same-origin
+proxying or same-site custom domains. Vercel Hobby is limited to personal, non-commercial use and
+cannot host the frontend of a sold service on its free plan.
+
+The current buyer UI also cannot complete the full requisition-to-invoice journey: approvals,
+evaluation, awards, purchase orders, receipts, invoices, and document field review remain API-led
+or ID-lookup experiences. Supplier users have no separately authenticated portal. See
+[`WORKFLOW_LAUNCH_AUDIT.md`](WORKFLOW_LAUNCH_AUDIT.md) for the journey-by-journey gap map.
 
 ## Definition of complete
 

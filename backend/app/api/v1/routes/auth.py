@@ -31,7 +31,7 @@ def _require_oidc(settings: Settings) -> None:
         (
             settings.oidc_authorization_url,
             settings.oidc_token_url,
-            settings.oidc_redirect_uri,
+            settings.effective_oidc_redirect_uri,
             settings.oidc_audience,
             settings.oidc_client_secret
             and settings.oidc_client_secret.get_secret_value().strip(),
@@ -68,7 +68,7 @@ async def login(
     query = urlencode(
         {
             "client_id": settings.oidc_audience,
-            "redirect_uri": settings.oidc_redirect_uri,
+            "redirect_uri": settings.effective_oidc_redirect_uri,
             "response_type": "code",
             "scope": "openid profile email",
             "state": state,
@@ -113,7 +113,7 @@ async def callback(
                     "code": code,
                     "client_id": settings.oidc_audience,
                     "client_secret": secret.get_secret_value(),
-                    "redirect_uri": settings.oidc_redirect_uri,
+                    "redirect_uri": settings.effective_oidc_redirect_uri,
                     "code_verifier": verifier,
                 },
             )

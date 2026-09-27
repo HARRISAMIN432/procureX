@@ -59,6 +59,8 @@ def test_signed_document_upload_is_scoped_and_uses_sha256() -> None:
     assert request["parameters"]["use_filename"] == "0"
     assert request["parameters"]["public_id"].endswith(".pdf")
     assert len(request["parameters"]["signature"]) == 64
+    assert request["parameters"]["api_key"] == "api-key"
+    assert "api-secret" not in str(request)
 
 
 def test_upload_response_signature_is_verified() -> None:

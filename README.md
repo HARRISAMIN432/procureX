@@ -8,7 +8,9 @@ foundation lives in [`backend/`](backend/README.md), and the React application l
 
 A free-tier Render demonstration Blueprint is included at [`render.yaml`](render.yaml). Read
 [`docs/DEPLOY_RENDER.md`](docs/DEPLOY_RENDER.md) first; the free-tier limits make it unsuitable for
-customer production data.
+customer production data. The free demonstration serves the web app and API from one origin. The
+current sell-readiness and workflow gaps are tracked in
+[`docs/WORKFLOW_LAUNCH_AUDIT.md`](docs/WORKFLOW_LAUNCH_AUDIT.md).
 
 The commercial foundation uses a free community plan with seat/storage enforcement, auditable
 support cases, tenant data export, reversible closure, after-sales cases, and legal/operations

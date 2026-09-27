@@ -23,6 +23,7 @@ class CommercialOverview(BaseModel):
     active_members: int
     stored_bytes: int
     open_support_cases: int
+    ai_runs_this_month: int
     seat_usage_percent: float
     storage_usage_percent: float
 

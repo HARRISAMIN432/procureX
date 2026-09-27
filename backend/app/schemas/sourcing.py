@@ -123,6 +123,10 @@ class InvitationRead(BaseModel):
     invited_at: datetime | None
     responded_at: datetime | None
     response_reason: str | None
+    email_status: str
+    email_publication_number: int
+    email_sent_at: datetime | None
+    email_error_code: str | None
 
 
 class InvitationAcknowledge(BaseModel):

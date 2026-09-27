@@ -11,3 +11,8 @@ Before launch, replace the placeholders below and obtain jurisdiction-specific r
 ProcureX processes account identity, membership, supplier, procurement, document, audit, support,
 and operational data to provide and secure the service. It does not require advertising trackers and
 must not sell customer data. Administrators can export workspace data and schedule closure.
+
+Before enabling AI analysis for customer data, state exactly what extracted evidence is sent to the
+model provider and verify its retention and training/data-use terms. The Gemini API free tier says
+submitted content may be used to improve Google's products; do not use that tier for confidential
+customer submissions without a suitable agreement and explicit customer authorization.

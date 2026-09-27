@@ -3,14 +3,17 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 
 from app.auth.context import RequestContext, require_permission
-from app.models.approvals import ApprovalDecisionValue
+from app.models.approvals import ApprovalDecisionValue, ApprovalPolicy, ApprovalRequest
 from app.schemas.approvals import (
     ApprovalDecisionWrite,
     ApprovalPolicyCreate,
+    ApprovalPolicyList,
     ApprovalPolicyRead,
     ApprovalRequestCreate,
+    ApprovalRequestList,
     ApprovalRequestRead,
     BudgetCreate,
     BudgetList,
@@ -76,6 +79,43 @@ async def create_policy_endpoint(
     context: Annotated[RequestContext, Depends(require_permission("approvals.policies.manage"))],
 ) -> ApprovalPolicyRead:
     return await execute(lambda: create_approval_policy(context, payload))
+
+
+@router.get("/approval-policies", response_model=ApprovalPolicyList)
+async def list_policies_endpoint(
+    context: Annotated[RequestContext, Depends(require_permission("approvals.read"))],
+) -> ApprovalPolicyList:
+    policies = list(
+        await context.session.scalars(
+            select(ApprovalPolicy)
+            .where(ApprovalPolicy.organization_id == context.organization_id)
+            .order_by(ApprovalPolicy.created_at.desc())
+            .limit(200)
+        )
+    )
+    return ApprovalPolicyList(
+        items=[
+            ApprovalPolicyRead.model_validate(policy, from_attributes=True) for policy in policies
+        ],
+        total=len(policies),
+    )
+
+
+@router.get("/approval-requests", response_model=ApprovalRequestList)
+async def list_approval_requests_endpoint(
+    context: Annotated[RequestContext, Depends(require_permission("approvals.read"))],
+) -> ApprovalRequestList:
+    ids = list(
+        await context.session.scalars(
+            select(ApprovalRequest.id)
+            .where(ApprovalRequest.organization_id == context.organization_id)
+            .order_by(ApprovalRequest.created_at.desc())
+            .limit(200)
+        )
+    )
+    return ApprovalRequestList(
+        items=[await read_approval_request(context, item) for item in ids], total=len(ids)
+    )
 
 
 @router.post(
