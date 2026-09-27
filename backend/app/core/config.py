@@ -54,9 +54,17 @@ class Settings(BaseSettings):
     oidc_issuer: str | None = None
     oidc_audience: str | None = None
     oidc_jwks_url: str | None = None
+    oidc_authorization_url: str | None = None
+    oidc_token_url: str | None = None
+    oidc_redirect_uri: str | None = None
+    oidc_client_secret: SecretStr | None = None
     oidc_algorithms: list[str] = Field(default_factory=lambda: ["RS256"])
     oidc_clock_skew_seconds: int = Field(default=30, ge=0, le=300)
     oidc_jwks_timeout_seconds: float = Field(default=5, gt=0, le=30)
+    auth_login_ttl_seconds: int = Field(default=600, ge=60, le=1800)
+    auth_session_ttl_seconds: int = Field(default=28800, ge=300, le=604800)
+    auth_cookie_name: str = "procurex_session"
+    auth_csrf_cookie_name: str = "procurex_csrf"
     allow_self_service_organization_signup: bool = False
 
     database_url: str = "postgresql+asyncpg://procurex:procurex@localhost:5432/procurex"
@@ -164,12 +172,32 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "Staging and production require OIDC issuer, audience, and JWKS URL"
                 )
+            if not all(
+                (
+                    self.oidc_authorization_url,
+                    self.oidc_token_url,
+                    self.oidc_redirect_uri,
+                    self.oidc_client_secret
+                    and self.oidc_client_secret.get_secret_value().strip(),
+                )
+            ):
+                raise ValueError(
+                    "Staging and production require complete server-side OIDC configuration"
+                )
             issuer = urlsplit(self.oidc_issuer)
             jwks = urlsplit(self.oidc_jwks_url)
             if issuer.scheme != "https" or issuer.hostname is None:
                 raise ValueError("Staging and production require an HTTPS OIDC issuer")
             if jwks.scheme != "https" or jwks.hostname is None:
                 raise ValueError("Staging and production require an HTTPS OIDC JWKS URL")
+            for label, value in (
+                ("authorization URL", self.oidc_authorization_url),
+                ("token URL", self.oidc_token_url),
+                ("redirect URI", self.oidc_redirect_uri),
+            ):
+                parsed = urlsplit(value or "")
+                if parsed.scheme != "https" or parsed.hostname is None:
+                    raise ValueError(f"Staging and production require an HTTPS OIDC {label}")
             allowed_algorithms = {"RS256", "RS384", "RS512", "ES256", "ES384", "ES512"}
             if not self.oidc_algorithms or not set(self.oidc_algorithms) <= allowed_algorithms:
                 raise ValueError(

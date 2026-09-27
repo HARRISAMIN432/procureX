@@ -78,6 +78,10 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
         "oidc_issuer": "https://identity.example.com",
         "oidc_audience": "procurex-api",
         "oidc_jwks_url": "https://identity.example.com/.well-known/jwks.json",
+        "oidc_authorization_url": "https://identity.example.com/authorize",
+        "oidc_token_url": "https://identity.example.com/token",
+        "oidc_redirect_uri": "https://api.procurex.example/api/v1/auth/callback",
+        "oidc_client_secret": "oidc-secret",
         "cloudinary_cloud_name": "procurex",
         "cloudinary_api_key": "key",
         "cloudinary_api_secret": "secret",
@@ -133,9 +137,7 @@ def test_render_runtime_hosts_extend_the_exact_edge_allowlists() -> None:
     )
 
     assert settings.effective_allowed_hosts == ["procurex-api-ab12.onrender.com"]
-    assert settings.effective_cors_allowed_origins == [
-        "https://procurex-web-cd34.onrender.com"
-    ]
+    assert settings.effective_cors_allowed_origins == ["https://procurex-web-cd34.onrender.com"]
 
 
 @pytest.mark.parametrize(

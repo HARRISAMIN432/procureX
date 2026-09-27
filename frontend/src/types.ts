@@ -44,6 +44,6 @@ export type Session = {
   mode: "dev" | "oidc";
   organizationId: string;
   userId?: string;
-  accessToken?: string;
+  csrfToken?: string;
   displayName: string;
 };

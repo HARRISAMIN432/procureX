@@ -40,7 +40,13 @@ def jwks_client(url: str, timeout_seconds: float) -> PyJWKClient:
     )
 
 
-def _decode_token(settings: Settings, token: str, key_client: SigningKeyClient) -> OIDCPrincipal:
+def _decode_token(
+    settings: Settings,
+    token: str,
+    key_client: SigningKeyClient,
+    *,
+    expected_nonce: str | None = None,
+) -> OIDCPrincipal:
     if not settings.oidc_issuer or not settings.oidc_audience:
         raise OIDCAuthenticationError("OIDC verifier is not configured")
     try:
@@ -59,6 +65,8 @@ def _decode_token(settings: Settings, token: str, key_client: SigningKeyClient) 
     subject = cast(object, claims.get("sub"))
     if not isinstance(subject, str) or not subject.strip() or len(subject) > 255:
         raise OIDCAuthenticationError("Bearer token subject is invalid")
+    if expected_nonce is not None and claims.get("nonce") != expected_nonce:
+        raise OIDCAuthenticationError("OIDC token nonce is invalid")
     email_claim = claims.get("email")
     email = (
         email_claim.strip().lower()
@@ -69,6 +77,18 @@ def _decode_token(settings: Settings, token: str, key_client: SigningKeyClient) 
         subject=subject,
         email=email,
         email_verified=email is not None and claims.get("email_verified") is True,
+    )
+
+
+def authenticate_id_token(settings: Settings, token: str, *, expected_nonce: str) -> OIDCPrincipal:
+    """Validate an ID token returned by the server-side authorization-code exchange."""
+    if not settings.oidc_jwks_url:
+        raise OIDCAuthenticationError("OIDC verifier is not configured")
+    return _decode_token(
+        settings,
+        token,
+        jwks_client(settings.oidc_jwks_url, settings.oidc_jwks_timeout_seconds),
+        expected_nonce=expected_nonce,
     )
 
 

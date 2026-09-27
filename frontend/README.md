@@ -1,8 +1,9 @@
 # ProcureX web
 
-The frontend is a React/TypeScript procurement workspace connected directly to the tenant-scoped
-FastAPI contract. It supports generic OIDC Authorization Code + PKCE in deployed environments and
-the backend's explicit development headers locally.
+The frontend is a React/TypeScript procurement workspace connected to the tenant-scoped FastAPI
+contract. In deployed environments, the backend performs OIDC Authorization Code + PKCE and the
+frontend uses an opaque HttpOnly session cookie. Provider tokens and client secrets are never
+stored in browser JavaScript. Local development headers remain available in development mode.
 
 ```bash
 cp .env.example .env
@@ -11,8 +12,8 @@ npm run dev
 ```
 
 For local access, bootstrap an organization through the backend and enter the returned organization
-and user UUIDs on the local login screen. For OIDC, register the frontend origin and
-`/auth/callback` URL with the selected provider, then configure the `VITE_OIDC_*` values.
+and user UUIDs on the local login screen. For OIDC, set `VITE_AUTH_MODE=oidc`, configure the OIDC
+provider only in the backend environment, and register the backend `/api/v1/auth/callback` URL.
 
 Production validation:
 

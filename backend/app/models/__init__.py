@@ -7,6 +7,7 @@ from app.models.approvals import (
     BudgetLedgerEntry,
     BudgetReservation,
 )
+from app.models.auth import AuthLoginTransaction, AuthSession
 from app.models.awards import AllocationLine, AllocationScenario, Award, AwardDecision
 from app.models.commercial import (
     AfterSalesCase,
@@ -81,6 +82,8 @@ from app.models.suppliers import (
 
 __all__ = [
     "AnalysisRun",
+    "AuthLoginTransaction",
+    "AuthSession",
     "AllocationLine",
     "AllocationScenario",
     "ApprovalDecision",

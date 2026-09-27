@@ -16,6 +16,10 @@ def production_settings() -> Settings:
         oidc_issuer="https://identity.example.com",
         oidc_audience="procurex-api",
         oidc_jwks_url="https://identity.example.com/.well-known/jwks.json",
+        oidc_authorization_url="https://identity.example.com/authorize",
+        oidc_token_url="https://identity.example.com/token",
+        oidc_redirect_uri="https://api.procurex.example/api/v1/auth/callback",
+        oidc_client_secret="oidc-secret",
         cloudinary_cloud_name="procurex",
         cloudinary_api_key="key",
         cloudinary_api_secret="secret",
@@ -75,7 +79,9 @@ def test_cors_allows_only_configured_origin() -> None:
             headers={
                 "Origin": "https://app.procurex.test",
                 "Access-Control-Request-Method": "GET",
-                "Access-Control-Request-Headers": "Authorization,X-Organization-ID,X-User-ID",
+                "Access-Control-Request-Headers": (
+                    "Authorization,X-CSRF-Token,X-Organization-ID,X-User-ID"
+                ),
             },
         )
         denied = client.options(
@@ -89,6 +95,7 @@ def test_cors_allows_only_configured_origin() -> None:
     assert allowed.status_code == 200
     assert allowed.headers["access-control-allow-origin"] == "https://app.procurex.test"
     assert "X-Organization-ID" in allowed.headers["access-control-allow-headers"]
+    assert "X-CSRF-Token" in allowed.headers["access-control-allow-headers"]
     assert denied.status_code == 400
     assert "access-control-allow-origin" not in denied.headers
 

@@ -4,6 +4,8 @@ from app import models  # noqa: F401
 from app.db.base import Base
 
 EXPECTED_TABLES = {
+    "auth_login_transactions",
+    "auth_sessions",
     "after_sales_cases",
     "accounting_exports",
     "accounting_sandbox_entries",
@@ -83,7 +85,13 @@ def test_foundation_tables_are_registered() -> None:
 
 
 def test_tenant_tables_have_organization_id() -> None:
-    global_tables = {"organizations", "users", "permissions"}
+    global_tables = {
+        "organizations",
+        "users",
+        "permissions",
+        "auth_login_transactions",
+        "auth_sessions",
+    }
     for table_name, table in Base.metadata.tables.items():
         if table_name not in global_tables:
             assert "organization_id" in table.columns, table_name

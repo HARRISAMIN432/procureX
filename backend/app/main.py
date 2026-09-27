@@ -46,6 +46,7 @@ def create_app(
         redoc_url=None if production else "/redoc",
         openapi_url=None if production else "/openapi.json",
     )
+    application.dependency_overrides[get_settings] = lambda: configured
     application.include_router(api_router, prefix=configured.api_v1_prefix)
     application.add_middleware(
         TrustedHostMiddleware,
@@ -60,6 +61,7 @@ def create_app(
             "Authorization",
             "Content-Type",
             "X-Request-ID",
+            "X-CSRF-Token",
             "X-Organization-ID",
             "X-User-ID",
             "X-Dev-Bootstrap-Key",

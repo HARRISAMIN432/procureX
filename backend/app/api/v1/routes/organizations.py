@@ -1,12 +1,15 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import RequestContext, require_permission
-from app.auth.oidc import OIDCAuthenticationError, authenticate_bearer_token
+from app.auth.oidc import OIDCAuthenticationError, OIDCPrincipal
+from app.auth.session import load_auth_session
 from app.core.config import AuthMode, Environment, Settings, get_settings
+from app.core.database import get_db_session
 from app.models.identity import Organization, OrganizationSetting
 from app.schemas.identity import (
     MemberInviteCreate,
@@ -46,8 +49,9 @@ router = APIRouter(prefix="/organizations", tags=["organizations"])
 
 @router.get("/mine", response_model=list[OrganizationWorkspaceRead])
 async def principal_workspaces(
+    request: Request,
     settings: Annotated[Settings, Depends(get_settings)],
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> list[OrganizationWorkspaceRead]:
     """Return selectable workspaces for a verified OIDC principal.
 
@@ -57,11 +61,12 @@ async def principal_workspaces(
     if settings.auth_mode is not AuthMode.OIDC:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     try:
-        principal = await authenticate_bearer_token(settings, authorization)
+        async with db.begin():
+            session = await load_auth_session(request, settings, db)
         return await list_principal_workspaces(
-            external_subject=principal.subject,
-            email=principal.email,
-            email_verified=principal.email_verified,
+            external_subject=session.external_subject,
+            email=session.email,
+            email_verified=session.email_verified,
         )
     except OIDCAuthenticationError as exc:
         raise HTTPException(
@@ -74,8 +79,9 @@ async def principal_workspaces(
 @router.post("", response_model=OrganizationBootstrapResponse, status_code=status.HTTP_201_CREATED)
 async def oidc_organization_signup(
     payload: OrganizationSignupRequest,
+    request: Request,
     settings: Annotated[Settings, Depends(get_settings)],
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> OrganizationBootstrapResponse:
     if (
         settings.auth_mode is not AuthMode.OIDC
@@ -83,7 +89,13 @@ async def oidc_organization_signup(
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     try:
-        principal = await authenticate_bearer_token(settings, authorization)
+        async with db.begin():
+            session = await load_auth_session(request, settings, db, require_csrf=True)
+            principal = OIDCPrincipal(
+                subject=session.external_subject,
+                email=session.email,
+                email_verified=session.email_verified,
+            )
         if not principal.email_verified or principal.email is None:
             raise OIDCAuthenticationError("A verified email claim is required")
         if str(payload.admin_email).lower() != principal.email:

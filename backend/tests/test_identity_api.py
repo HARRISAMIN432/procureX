@@ -21,6 +21,11 @@ def test_identity_routes_are_in_openapi() -> None:
         schema = client.get("/openapi.json").json()
 
     assert "/api/v1/organizations/dev-bootstrap" in schema["paths"]
+    assert "/api/v1/auth/login" in schema["paths"]
+    assert "/api/v1/auth/callback" in schema["paths"]
+    assert "/api/v1/auth/session" in schema["paths"]
+    assert "/api/v1/auth/select-workspace" in schema["paths"]
+    assert "/api/v1/auth/logout" in schema["paths"]
     assert "/api/v1/organizations/mine" in schema["paths"]
     assert "/api/v1/organizations/current" in schema["paths"]
     assert "/api/v1/organizations/current/settings" in schema["paths"]

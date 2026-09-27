@@ -68,9 +68,13 @@ Use the returned `organization_id` and `user_id` as `X-Organization-ID` and `X-U
 for local authenticated requests. Staging and production configuration rejects this mechanism and
 requires OIDC mode.
 
-For deployed OIDC, configure `PROCUREX_OIDC_ISSUER`, `PROCUREX_OIDC_AUDIENCE`, and the provider's
-HTTPS `PROCUREX_OIDC_JWKS_URL`. Bearer subjects must hold an active membership in the selected
-`X-Organization-ID`. Administrators can invite members and assign roles through
+For deployed OIDC, configure `PROCUREX_OIDC_ISSUER`, `PROCUREX_OIDC_AUDIENCE`, the provider's
+HTTPS `PROCUREX_OIDC_JWKS_URL`, `PROCUREX_OIDC_AUTHORIZATION_URL`, `PROCUREX_OIDC_TOKEN_URL`,
+`PROCUREX_OIDC_REDIRECT_URI`, and the server-only `PROCUREX_OIDC_CLIENT_SECRET`. The API performs
+Authorization Code + PKCE, stores opaque sessions in PostgreSQL, and gives the browser only
+HttpOnly session and CSRF cookies. Never expose the client secret through a `VITE_*` variable.
+Authenticated subjects must hold an active membership in the selected workspace. Administrators
+can invite members and assign roles through
 `/api/v1/organizations/current/members`; a first login accepts an invite only from a
 provider-verified matching email. Optional self-service organization signup is guarded by
 `PROCUREX_ALLOW_SELF_SERVICE_ORGANIZATION_SIGNUP`. Only configured asymmetric signature algorithms

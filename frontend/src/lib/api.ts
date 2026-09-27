@@ -12,9 +12,9 @@ export async function api<T>(session: Session, path: string, options: RequestIni
   headers.set("X-Organization-ID", session.organizationId);
   headers.set("X-Request-ID", crypto.randomUUID());
   if (options.body) headers.set("Content-Type", "application/json");
-  if (session.mode === "oidc" && session.accessToken) headers.set("Authorization", `Bearer ${session.accessToken}`);
+  if (session.mode === "oidc" && options.method && !["GET", "HEAD", "OPTIONS"].includes(options.method.toUpperCase())) headers.set("X-CSRF-Token", session.csrfToken || "");
   if (session.mode === "dev" && session.userId) headers.set("X-User-ID", session.userId);
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({})) as { detail?: string | { message?: string } };
     const message = typeof payload.detail === "string" ? payload.detail : payload.detail?.message || "The request could not be completed.";
