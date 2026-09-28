@@ -109,7 +109,7 @@ class Settings(BaseSettings):
 
     langgraph_checkpoint_database_url: SecretStr | None = None
     llm_provider: str = "gemini"
-    llm_model: str = "gemini-3.1-flash-lite"
+    llm_model: str = "gemini-3.5-flash-lite"
     gemini_api_key: SecretStr | None = None
     llm_timeout_seconds: float = Field(default=90, gt=0, le=300)
     llm_max_retries: int = Field(default=2, ge=0, le=5)

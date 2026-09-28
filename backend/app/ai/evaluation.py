@@ -147,6 +147,18 @@ class GeminiComparisonModel:
         )
         response = cast(dict[str, Any], raw_response)
         parsed = response.get("parsed")
+        # Gemini can return ``abstained=false`` alongside an empty citation list even when the
+        # prompt explicitly requires abstention. Normalize that internally inconsistent flag to
+        # the safer meaning before enforcing the rest of the strict response contract.
+        if isinstance(parsed, dict):
+            narratives = parsed.get("supplier_narratives")
+            if isinstance(narratives, list):
+                for narrative in narratives:
+                    if (
+                        isinstance(narrative, dict)
+                        and narrative.get("evidence_anchor_ids") == []
+                    ):
+                        narrative["abstained"] = True
         try:
             summary = GroundedComparisonSummary.model_validate(parsed)
         except (TypeError, ValueError) as exc:

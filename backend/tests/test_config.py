@@ -13,7 +13,7 @@ def test_local_settings_have_safe_defaults() -> None:
     assert settings.document_max_upload_bytes == 25 * 1024 * 1024
     assert settings.document_upload_intent_ttl_seconds == 600
     assert settings.llm_provider == "gemini"
-    assert settings.llm_model == "gemini-3.1-flash-lite"
+    assert settings.llm_model == "gemini-3.5-flash-lite"
 
 
 @pytest.mark.parametrize("scheme", ["postgres://", "postgresql://"])
