@@ -7,7 +7,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from app.core.config import get_settings
+from app.core.config import EmailProvider, get_settings
 from app.core.database import close_database, tenant_transaction
 from app.core.email import EmailDeliveryError, ResendEmailClient, RetryableEmailDeliveryError
 from app.models.identity import Organization
@@ -20,6 +20,8 @@ from app.workers.celery_app import celery_app
 def enqueue_supplier_invitation_email(
     organization_id: uuid.UUID, invitation_id: uuid.UUID, publication_number: int
 ) -> None:
+    if get_settings().email_provider is EmailProvider.DISABLED:
+        return
     send_supplier_invitation_email.apply_async(
         args=[str(organization_id), str(invitation_id), publication_number]
     )

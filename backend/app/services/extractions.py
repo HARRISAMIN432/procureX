@@ -188,6 +188,8 @@ async def create_extraction(
         content_digest=digest,
     )
     context.session.add_all([analysis_run, extraction])
+    # Flush graph and extraction parents before inserting fields with composite foreign keys.
+    await context.session.flush()
     field_ids = {field.field_key: uuid.uuid4() for field in payload.fields}
     context.session.add_all(
         [
@@ -208,6 +210,8 @@ async def create_extraction(
             for field in payload.fields
         ]
     )
+    # Evidence anchors reference both the extraction and extracted field parents.
+    await context.session.flush()
     context.session.add_all(
         [
             EvidenceAnchor(

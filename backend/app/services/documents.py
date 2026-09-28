@@ -488,6 +488,9 @@ async def record_parse_result(
         error_detail=payload.error_detail,
     )
     context.session.add(parse)
+    # DocumentPage uses a composite foreign key to the parse. Flush the parent explicitly because
+    # the models do not expose an ORM relationship that SQLAlchemy can use to infer insert order.
+    await context.session.flush()
     context.session.add_all(
         [
             DocumentPage(

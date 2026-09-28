@@ -641,6 +641,9 @@ async def submit_quote(
         submitted_at=now,
     )
     context.session.add(submission)
+    # Quote lines and attachments use composite foreign keys to the submission. Flush the parent
+    # explicitly because these models do not declare ORM relationships for dependency ordering.
+    await context.session.flush()
     context.session.add_all(
         [
             QuoteLine(
